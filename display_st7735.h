@@ -6,6 +6,8 @@
 #ifndef DISPLAY_ST7735H
 #define DISPLAY_ST7735H
 
+#ifdef _BOARD_STM32F407VG_STM32F4DISCOVERY
+
 #include "mxgui/config/mxgui_settings.h"
 #include "mxgui/display.h"
 #include "mxgui/point.h"
@@ -204,7 +206,18 @@ public:
          */
         pixel_iterator& operator= (Color color)
         {
-            //TODO: implementation
+            *dataPtr = color;
+
+            //This is to move to the adjacent pixel
+            dataPtr += aIncr;
+
+            //This is the step move to the next horizontal/vertical line
+            if(++ctr >= endCtr)
+            {
+                ctr = 0;
+                dataPtr += sIncr;
+            }
+            return *this;
         }
 
         /**
@@ -213,7 +226,7 @@ public:
          */
         bool operator== (const pixel_iterator& itr)
         {
-            //TODO: implementation
+            return this->dataPtr == itr.dataPtr; 
         }
 
         /**
@@ -222,7 +235,7 @@ public:
          */
         bool operator!= (const pixel_iterator& itr)
         {
-            //TODO: implementation
+            return this->dataPtr != itr.dataPtr;
         }
 
         /**
@@ -280,7 +293,11 @@ private:
     DisplayImpl();
 
 
-}
+};
 
-}
+} //namespace mxgui
+
+#endif _BOARD_STM32F407VG_STM32F4DISCOVERY
+
+#endif DISPLAY_ST7735H
 
