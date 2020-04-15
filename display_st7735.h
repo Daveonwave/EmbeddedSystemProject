@@ -192,12 +192,9 @@ public:
     {
     public:
         /**
-         * Default constructor, results in an invalid iterator.
-         * Note that since aIncr and sIncr are both zero all the writes will
-         * happen to the same memory location, but we need a safe
-         * /dev/null-like location where to write, which is dummy
+         * Default constructor, results in an invalid iterator
          */
-        pixel_iterator() : ctr(0), endCtr(0), aIncr(0), sIncr(0), dataPtr(&dummy) {}
+        pixel_iterator() : pixelLeft(0) {}
 
         /**
          * Set a pixel and move the pointer to the next one
@@ -206,17 +203,8 @@ public:
          */
         pixel_iterator& operator= (Color color)
         {
-            *dataPtr = color;
-
-            //This is to move to the adjacent pixel
-            dataPtr += aIncr;
-
-            //This is the step move to the next horizontal/vertical line
-            if(++ctr >= endCtr)
-            {
-                ctr = 0;
-                dataPtr += sIncr;
-            }
+            pixelLeft--;
+            writeRam(color);
             return *this;
         }
 
@@ -226,7 +214,7 @@ public:
          */
         bool operator== (const pixel_iterator& itr)
         {
-            return this->dataPtr == itr.dataPtr; 
+            return this->pixelLeft == itr.pixelLeft; 
         }
 
         /**
@@ -235,7 +223,7 @@ public:
          */
         bool operator!= (const pixel_iterator& itr)
         {
-            return this->dataPtr != itr.dataPtr;
+            return this->pixelLeft != itr.pixelLeft;
         }
 
         /**
@@ -259,6 +247,17 @@ public:
          */
         void invalidate() {}
 
+    private:
+        /**
+         * Constructor
+         * \param pixelLeft number of remaining pixels 
+         */
+        pixel_iterator(unsigned int pixelLeft) : pixelLeft(pixelLeft) {}
+
+        unsigned int pixelLeft;         ///< How many pixels are left to draw
+
+        friend class DisplayImpl;       //Needs access to ctr
+
     };
 
     /**
@@ -277,7 +276,11 @@ public:
      * specified by begin. Behaviour is undefined if called before calling
      * begin()
      */
-    pixel_iterator end() const { return last; }
+    pixel_iterator end() const 
+    {
+        // Default ctor: pixelLeft is zero
+        return pixel_iterator(); 
+        }
 
     /**
      * Destructor
@@ -292,12 +295,65 @@ private:
      */
     DisplayImpl();
 
+    #if defined MXGUI_ORIENTATION_VERTICAL || \
+        defined MXGUI_ORIENTATION_VERTICAL_MIRRORED
+    static const short int width = 132;
+    static const short int height = 162;
+    
+    #elif defined MXGUI_ORIENTATION_HORIZONTAL || \
+          defined MXGUI_ORIENTATION_HORIZONTAL_MIRRORED
+    static const short int width = 162;
+    static const short int height = 132;
+    
+    #else
+    #error No orientation defined
+    #endif
 
+    /**
+     * Set cursor to desired location
+     * \param point where to set cursor (0<=x<240, 0<=y<320)
+     */
+    static inline void setCursor(Point p)
+    {
+        #ifdef MXGUI_ORIENTATION_VERTICAL
+        //TODO: write reg
+        #elif defined MXGUI_ORIENTATION_HORIZONTAL
+        //TODO: write reg
+        #elif defined MXGUI_ORIENTATION_VERTICAL_MIRRORED
+        //TODO: write reg
+        #else //defined MXGUI_ORIENTATION_HORIZONTAL_MIRRORED
+        //TODO: write reg
+        #endif
+    }
+
+
+    //TODO: Backend??
+    /**
+     * Memory layout of the display.
+     * This backend is meant to connect an stm32f4discovery to an LCD display with
+     * an spfd5408 controller on the stm3210e_eval board.
+     */
+    struct DisplayMemLayout
+    {
+        volatile unsigned short IDX; //Index, select register to write
+        volatile unsigned short RAM; //Ram, read and write from registers and GRAM
+    };
+
+
+    /**
+     * Pointer to the memory mapped display.
+     */
+    static DisplayMemLayout *const DISPLAY;
+
+    static void writeIdx(unsigned char reg)
+    {
+        DISPLAY->IDX = reg;
+    }
 };
 
 } //namespace mxgui
 
-#endif _BOARD_STM32F407VG_STM32F4DISCOVERY
+#endif //_BOARD_STM32F407VG_STM32F4DISCOVERY
 
-#endif DISPLAY_ST7735H
+#endif //DISPLAY_ST7735H
 

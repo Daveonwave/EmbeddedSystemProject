@@ -1,0 +1,7 @@
+DOMANDE E DUBBI:
+- max depth 12-18 bits
+- event_types and event implementation
+- different type of pixel_iterator (wide displays has a more complex structure)
+- define full screen mode and partial screen mode
+- when we definee the orientation of the screen?
+- Backend?
