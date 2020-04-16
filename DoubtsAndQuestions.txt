@@ -1,7 +1,10 @@
 DOMANDE E DUBBI:
+- cosa si aspetta che facciamo
 - max depth 12-18 bits
 - event_types and event implementation
 - different type of pixel_iterator (wide displays has a more complex structure)
 - define full screen mode and partial screen mode
-- when we definee the orientation of the screen?
-- Backend?
+- when we define the orientation of the screen?
+- backend (DisplayMemLayout): come comunica di scrivere nei registri da writeReg?
+- usare entrambe le risoluzione
+- funzioni miosix per comunicare con la scheda
