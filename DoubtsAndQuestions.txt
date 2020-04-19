@@ -8,3 +8,5 @@ DOMANDE E DUBBI:
 - backend (DisplayMemLayout): come comunica di scrivere nei registri da writeReg?
 - usare entrambe le risoluzione
 - funzioni miosix per comunicare con la scheda
+- 3 or 4 line serial communication?
+- ci sono tre spi nella board...possiamo usare quella che vogliamo?
