@@ -9,3 +9,4 @@ DOMANDE E DUBBI:
 - usare entrambe le risoluzione
 - 3 or 4 line serial communication?
 - ci sono tre spi nella board...possiamo usare quella che vogliamo?
+- buffer reinterpret_cast what does it mean?

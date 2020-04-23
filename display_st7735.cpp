@@ -97,18 +97,74 @@ void DisplayImpl::clear(Color color) {
     clear(Point(0,0), Point(width-1,  height-1), color);
 }
 
-//TODO: verify if it is correct 
+//TODO: TO IMPLEMENT ---------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void DisplayImpl::clear(Point p1, Point p2, Color color) {}
 
 void DisplayImpl::beginPixel() {}
 
-void DisplayImpl::setPixel(Point p, Color color)
-{
-    int offset = p.x() + p.y() * width;
-    if(offset < 0 || offset >= numPixels) { return; }
-    *(framebuffer1+offset) = color;
-}
+void DisplayImpl::setPixel(Point p, Color color) {}
 
+void DIsplayImpl::line(Point a, Point b, Color color) {}
+
+void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
+
+Color *DisplayImpl::getScanLineBuffer() {}
+
+void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
+
+void DisplayImpl::drawImage(Point p, unsigned short length) {}
+
+void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
+
+void DisplayImpl::drawTectangle(Point a, Point b, Color c) {}
+
+Display::pixel_iterator DisplayImpl::begin(Point p1, Point p2, IteratorDirection d) {}
+
+void DisplayImpl::setCursor(Point p) {}
+
+void DisplayImpl::textWindow(Point p1, Point p2) {}
+
+DisplayImpl::imageWindow(Point p1, Point p2) {}
+
+DisplayImpl::~DisplayImpl() {}
+//---------------------------------------------------------------------------------------
+//TODO: ---------------------------------------------------------------------------------
+
+DisplayImpl::Display(): buffer(0) {
+    //TODO: RCC configuration
+    {
+        FastInterruptDisableLock dLock;
+
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN
+        //RCC something and stuff..
+    }
+
+    //TODO: while something (RCC->CR == 0)...
+
+    {
+        FastInterruptDisableLock dLock;
+
+        scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
+        sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
+        csx::mode(Mode::ALTERNATE);     csx::alternateFunction(5); //TODO: maybe is output
+        dcx::mode(Mode::OUTPUT);
+        rsx::mode(Mode::OUTPUT);
+
+        //TODO: RCC something...
+    }
+
+    //Instructions for initialization...
+    sendCmd(0x01, 0);                       // ST7735_SWRESET
+    delayMs(150);
+    sendCmd(0x11, 0);                       // ST7735_SLPOUT
+    delayMs(255);
+    sendCmd(0x3A, 1, 0x05);                 // ST7735_COLMOD, color mode: 16-bit/pixel
+    sendCmd(0xB1, 3, 0x01, 0x2C, 0x2D);     // ST7735_FRMCTR1, normal mode frame rate
+    
+ 
+
+}
 
 
 
