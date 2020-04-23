@@ -2,11 +2,10 @@ DOMANDE E DUBBI:
 - cosa si aspetta che facciamo
 - max depth 12-18 bits
 - event_types and event implementation
-- different type of pixel_iterator (wide displays has a more complex structure)
+- different type of PIXEL_ITERATOR (wide displays has a more complex structure)
 - define full screen mode and partial screen mode
 - when we define the orientation of the screen?
 - backend (DisplayMemLayout): come comunica di scrivere nei registri da writeReg?
 - usare entrambe le risoluzione
-- funzioni miosix per comunicare con la scheda
 - 3 or 4 line serial communication?
 - ci sono tre spi nella board...possiamo usare quella che vogliamo?

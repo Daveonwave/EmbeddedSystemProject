@@ -192,9 +192,9 @@ public:
     {
     public:
         /**
-         * Default constructor, results in an invalid iterator
+         * Default constructor, results in an invalid iterator.
          */
-        pixel_iterator() : pixelLeft(0) {}
+        pixel_iterator(): pixelLeft(0) {}
 
         /**
          * Set a pixel and move the pointer to the next one
@@ -214,7 +214,7 @@ public:
          */
         bool operator== (const pixel_iterator& itr)
         {
-            return this->pixelLeft == itr.pixelLeft; 
+            return this->pixelLeft==itr.pixelLeft;
         }
 
         /**
@@ -223,7 +223,7 @@ public:
          */
         bool operator!= (const pixel_iterator& itr)
         {
-            return this->pixelLeft != itr.pixelLeft;
+            return this->pixelLeft!=itr.pixelLeft;
         }
 
         /**
@@ -250,14 +250,13 @@ public:
     private:
         /**
          * Constructor
-         * \param pixelLeft number of remaining pixels 
+         * \param pixelLeft number of remaining pixels
          */
-        pixel_iterator(unsigned int pixelLeft) : pixelLeft(pixelLeft) {}
+        pixel_iterator(unsigned int pixelLeft): pixelLeft(pixelLeft) {}
 
-        unsigned int pixelLeft;         ///< How many pixels are left to draw
+        unsigned int pixelLeft; ///< How many pixels are left to draw
 
-        friend class DisplayImpl;       //Needs access to ctr
-
+        friend class DisplayImpl; //Needs access to ctor
     };
 
     /**
@@ -280,13 +279,12 @@ public:
     {
         // Default ctor: pixelLeft is zero
         return pixel_iterator(); 
-        }
+    }
 
     /**
      * Destructor
      */
     ~DisplayImpl() override;
-
 
 private:
     /**
@@ -311,44 +309,29 @@ private:
 
     /**
      * Set cursor to desired location
-     * \param point where to set cursor (0<=x<240, 0<=y<320)
+     * \param point where to set cursor (0<=x<132, 0<=y<162)
      */
-    static inline void setCursor(Point p)
-    {
-        #ifdef MXGUI_ORIENTATION_VERTICAL
-        //TODO: write reg
-        #elif defined MXGUI_ORIENTATION_HORIZONTAL
-        //TODO: write reg
-        #elif defined MXGUI_ORIENTATION_VERTICAL_MIRRORED
-        //TODO: write reg
-        #else //defined MXGUI_ORIENTATION_HORIZONTAL_MIRRORED
-        //TODO: write reg
-        #endif
-    }
-
-
-    //TODO: Backend??
-    /**
-     * Memory layout of the display.
-     * This backend is meant to connect an stm32f4discovery to an LCD display with
-     * an spfd5408 controller on the stm3210e_eval board.
-     */
-    struct DisplayMemLayout
-    {
-        volatile unsigned short IDX; //Index, select register to write
-        volatile unsigned short RAM; //Ram, read and write from registers and GRAM
-    };
-
+    static void setCursor(Point p);
 
     /**
-     * Pointer to the memory mapped display.
+     * Set a hardware window on the screen, optimized for writing text.
+     * The GRAM increment will be set to up-to-down first, then left-to-right
+     * which is the correct increment to draw fonts
+     * \param p1 upper left corner of the window
+     * \param p2 lower right corner of the window
      */
-    static DisplayMemLayout *const DISPLAY;
+    static void textWindow(Point p1, Point p2);
 
-    static void writeIdx(unsigned char reg)
-    {
-        DISPLAY->IDX = reg;
-    }
+    /**
+     * Set a hardware window on the screen, optimized for drawing images.
+     * The GRAM increment will be set to left-to-right first, then up-to-down
+     * which is the correct increment to draw images
+     * \param p1 upper left corner of the window
+     * \param p2 lower right corner of the window
+     */
+    static void imageWindow(Point p1, Point p2);
+
+    Color *buffer; ///< For scanLineBuffer
 };
 
 } //namespace mxgui
