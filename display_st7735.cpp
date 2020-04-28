@@ -160,9 +160,22 @@ DisplayImpl::Display(): buffer(0) {
     sendCmd(0x11, 0);                       // ST7735_SLPOUT
     delayMs(255);
     sendCmd(0x3A, 1, 0x05);                 // ST7735_COLMOD, color mode: 16-bit/pixel
-    sendCmd(0xB1, 3, 0x01, 0x2C, 0x2D);     // ST7735_FRMCTR1, normal mode frame rate
     
- 
+    sendCmd(0xB1, 3, 0x01, 0x2C, 0x2D);     // ST7735_FRMCTR1, normal mode frame rate
+    delayMs(10);
+    //sendCmd(0xB2, 3, 0x01, 0x2C, 0x2D);   // ST7735_FRMCTR2, idle mode frame rate
+    //sendCmd(0xB3, 6, 0x01, 0x2C, 0x2D, 
+    //                 0x01, 0x2C, 0x2D);   // ST7735_FRMCTR3, partial mode frame rate   
+    
+    sendCmd(0x36, 1, 0x08);                 // ST7735_MADCTL, row/col addr, bottom-top refresh
+    sendCmd(0xB6, 2, 0x15, 0x02);           // ST7735_DISSET5, display settings
+    sendCmd(0xB4, 1, 0x00);                 // ST7735_INVCTR, line inversion active
+
+    sendCmd(0xC0, 2, 0x02, 0x70);           // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+    delayMs(10);
+    sendCmd(0xC1, 1, 0x05);                 // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+    sendCmd(0xC2, 2, 0x01, 0x02);           // ST7735_PWCTR3, opamp current small, boost frequency
+    
 
 }
 
