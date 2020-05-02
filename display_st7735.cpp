@@ -136,8 +136,9 @@ DisplayImpl::Display(): buffer(0) {
     {
         FastInterruptDisableLock dLock;
 
-        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN
+        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
         //RCC something and stuff..
+        //Spi1en..
     }
 
     //TODO: while something (RCC->CR == 0)...
@@ -147,7 +148,7 @@ DisplayImpl::Display(): buffer(0) {
 
         scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
         sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
-        csx::mode(Mode::ALTERNATE);     csx::alternateFunction(5); //TODO: maybe is output
+        csx::mode(Mode::OUTPUT);    
         dcx::mode(Mode::OUTPUT);
         rsx::mode(Mode::OUTPUT);
 
@@ -175,6 +176,7 @@ DisplayImpl::Display(): buffer(0) {
     delayMs(10);
     sendCmd(0xC1, 1, 0x05);                 // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
     sendCmd(0xC2, 2, 0x01, 0x02);           // ST7735_PWCTR3, opamp current small, boost frequency
+    
     
 
 }
