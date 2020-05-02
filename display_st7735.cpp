@@ -12,7 +12,7 @@ namespace mxgui {
 //Control interface
 typedef Gpio<GPIOA, 5> scl; //SPI1_SCK (af5)
 typedef Gpio<GPIOA, 7> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOA, 4> csx; //SPI1_NSS (af5)
+typedef Gpio<GPIOA, 4> csx; //free I/O pin
 typedef Gpio<GPIOB, 5> resx; //free I/O pin
 typedef Gpio<GPIOB, 6> dcx; //free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
@@ -176,8 +176,33 @@ DisplayImpl::Display(): buffer(0) {
     delayMs(10);
     sendCmd(0xC1, 1, 0x05);                 // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
     sendCmd(0xC2, 2, 0x01, 0x02);           // ST7735_PWCTR3, opamp current small, boost frequency
+    sendCmd(0xC5, 2, 0x3C, 0x38);           // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+    delayMs(10);
+    sendCmd(0xFC, 2, 0x11, 0x15);           // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
+
+    sendCmd(0xE0, 16,                       // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
+        0x09, 0x16, 0x09, 0x20,             //(Not entirely necessary, but provides
+        0x21, 0x1B, 0x13, 0x19,             // accurate colors)
+        0x17, 0x15, 0x1E, 0x2B,
+        0x04, 0x05, 0x02, 0x0E);
+    sendCmd(0xE1, 16,                       // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
+        0x0B, 0x14, 0x08, 0x1E,             //(Not entirely necessary, but provides
+        0x22, 0x1D, 0x18, 0x1E,             //accurate colors)
+        0x1B, 0x1A, 0x24, 0x2B,
+        0x06, 0x06, 0x02, 0x0F);
+    delayMs(10);
+
+    sendCmd(0x2A, 4,                        // ST7735_CASET, column address 
+        0x00, 0x00,                         // x_start = 0
+        0x00, 0x7F);                        // x_end = 127
+    sendCmd(0x2B, 4,                        // ST7735_RASET, row address
+        0x00, 0x00,                         // x_start = 0
+        0x00, 0x9F);                        // x_end = 159
     
-    
+    sendCmd(0x13, 0);                       // ST7735_NORON, normal display mode on
+    delayMs(10);
+    sendCmd(0x29, 0);                       // ST7735_DISPON, display on
+    delayMs(150);
 
 }
 

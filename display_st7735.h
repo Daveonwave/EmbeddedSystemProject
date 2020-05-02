@@ -295,13 +295,13 @@ private:
 
     #if defined MXGUI_ORIENTATION_VERTICAL || \
         defined MXGUI_ORIENTATION_VERTICAL_MIRRORED
-    static const short int width = 132;
-    static const short int height = 162;
+    static const short int width = 128;
+    static const short int height = 160;
     
     #elif defined MXGUI_ORIENTATION_HORIZONTAL || \
           defined MXGUI_ORIENTATION_HORIZONTAL_MIRRORED
-    static const short int width = 162;
-    static const short int height = 132;
+    static const short int width = 128;
+    static const short int height = 160;
     
     #else
     #error No orientation defined
