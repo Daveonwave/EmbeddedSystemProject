@@ -37,12 +37,12 @@ static unsigned char sp1sendRev(unsigned char c=0) {
  */
 static void sendCmd(unsigned char cmd, int len, ...) {
     dcx::low(); //tells there is a command
-    csx::low(); 
+    csx::low();
     sp1sendRev(cmd);
     csx::high(); //indicate the start of the transmission
     delayUs(1); //TODO: delay
     dcx::high(); //tells there are parameters
-    va_list arg; 
+    va_list arg;
     va_start(arg, len)
     for(int i = 0; i < len; i++)
     {
@@ -75,7 +75,7 @@ void DisplayImpl::doTurnOn() {
 }
 
 void DisplayImpl::doTurnOff() {
-    sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN 
+    sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN
 }
 
 //No function to set brightness
@@ -137,6 +137,12 @@ DisplayImpl::Display(): buffer(0) {
         FastInterruptDisableLock dLock;
 
         RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+        SPI1->CR2=0;
+        SPI1->CR1=SPI_CR1_SSM  //Software cs
+                | SPI_CR1_SSI  //Hardware cs internally tied high
+                | SPI_CR1_MSTR //Master mode
+                | SPI_CR1_SPE; //SPI enabled
+                | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
         //RCC something and stuff..
         //Spi1en..
     }
@@ -148,7 +154,7 @@ DisplayImpl::Display(): buffer(0) {
 
         scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
         sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
-        csx::mode(Mode::OUTPUT);    
+        csx::mode(Mode::OUTPUT);
         dcx::mode(Mode::OUTPUT);
         rsx::mode(Mode::OUTPUT);
 
@@ -161,13 +167,13 @@ DisplayImpl::Display(): buffer(0) {
     sendCmd(0x11, 0);                       // ST7735_SLPOUT
     delayMs(255);
     sendCmd(0x3A, 1, 0x05);                 // ST7735_COLMOD, color mode: 16-bit/pixel
-    
+
     sendCmd(0xB1, 3, 0x01, 0x2C, 0x2D);     // ST7735_FRMCTR1, normal mode frame rate
     delayMs(10);
     //sendCmd(0xB2, 3, 0x01, 0x2C, 0x2D);   // ST7735_FRMCTR2, idle mode frame rate
-    //sendCmd(0xB3, 6, 0x01, 0x2C, 0x2D, 
-    //                 0x01, 0x2C, 0x2D);   // ST7735_FRMCTR3, partial mode frame rate   
-    
+    //sendCmd(0xB3, 6, 0x01, 0x2C, 0x2D,
+    //                 0x01, 0x2C, 0x2D);   // ST7735_FRMCTR3, partial mode frame rate
+
     sendCmd(0x36, 1, 0x08);                 // ST7735_MADCTL, row/col addr, bottom-top refresh
     sendCmd(0xB6, 2, 0x15, 0x02);           // ST7735_DISSET5, display settings
     sendCmd(0xB4, 1, 0x00);                 // ST7735_INVCTR, line inversion active
@@ -192,13 +198,13 @@ DisplayImpl::Display(): buffer(0) {
         0x06, 0x06, 0x02, 0x0F);
     delayMs(10);
 
-    sendCmd(0x2A, 4,                        // ST7735_CASET, column address 
+    sendCmd(0x2A, 4,                        // ST7735_CASET, column address
         0x00, 0x00,                         // x_start = 0
         0x00, 0x7F);                        // x_end = 127
     sendCmd(0x2B, 4,                        // ST7735_RASET, row address
         0x00, 0x00,                         // x_start = 0
         0x00, 0x9F);                        // x_end = 159
-    
+
     sendCmd(0x13, 0);                       // ST7735_NORON, normal display mode on
     delayMs(10);
     sendCmd(0x29, 0);                       // ST7735_DISPON, display on
