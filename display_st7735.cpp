@@ -5,16 +5,16 @@
 using namespace std;
 using namespace miosix;
 
-#ifdef _BOARD_STM32F407VG_STM32F4DISCOVERY
+#ifdef _BOARD_STM32F4DISCOVERY
 
 namespace mxgui {
 
 //Control interface
-typedef Gpio<GPIOA, 5> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOA, 7> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOA, 4> csx; //free I/O pin
-typedef Gpio<GPIOB, 5> resx; //free I/O pin
-typedef Gpio<GPIOB, 6> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
+typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
+typedef Gpio<GPIOA_BASE, 4> csx; //free I/O pin
+typedef Gpio<GPIOB_BASE, 5> resx; //free I/O pin
+typedef Gpio<GPIOB_BASE, 6> dcx; //free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 
@@ -43,12 +43,12 @@ static void sendCmd(unsigned char cmd, int len, ...) {
     delayUs(1); //TODO: delay
     dcx::high(); //tells there are parameters
     va_list arg;
-    va_start(arg, len)
+    va_start(arg, len);
     for(int i = 0; i < len; i++)
     {
         csx::low();
-        sp1sendRev(va_arg, int);
-        csx::high()
+        sp1sendRev(va_arg(arg, int));
+        csx::high();
         delayUs(1);
     }
     va_end(arg);
@@ -82,14 +82,14 @@ void DisplayImpl::doTurnOff() {
 void DisplayImpl::doSetBrightness(int brt) {}
 
 pair<short int, short int> DisplayImpl::doGetSize() const {
-    return make_pair(height, weight);
+    return make_pair(height, width);
 }
 
 void DisplayImpl::write(Point p, const char *text) {
     font.draw(*this, textColor, p, text);
 }
 
-void DisplyImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
+void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
     font.clippedDraw(*this, textColor, p, a, b, text);
 }
 
@@ -105,33 +105,41 @@ void DisplayImpl::beginPixel() {}
 
 void DisplayImpl::setPixel(Point p, Color color) {}
 
-void DIsplayImpl::line(Point a, Point b, Color color) {}
+void DisplayImpl::line(Point a, Point b, Color color) {}
 
 void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
 
-Color *DisplayImpl::getScanLineBuffer() {}
+Color *DisplayImpl::getScanLineBuffer() {
+    Color *color = NULL;
+    return color;
+}
 
 void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
 
-void DisplayImpl::drawImage(Point p, unsigned short length) {}
+void DisplayImpl::drawImage(Point p, const ImageBase& img) {}
 
 void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
 
-void DisplayImpl::drawTectangle(Point a, Point b, Color c) {}
+void DisplayImpl::drawRectangle(Point a, Point b, Color c) {}
 
-Display::pixel_iterator DisplayImpl::begin(Point p1, Point p2, IteratorDirection d) {}
+DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
+    Point p2, IteratorDirection d) {
+        return pixel_iterator();
+    }
 
 void DisplayImpl::setCursor(Point p) {}
 
 void DisplayImpl::textWindow(Point p1, Point p2) {}
 
-DisplayImpl::imageWindow(Point p1, Point p2) {}
+void DisplayImpl::imageWindow(Point p1, Point p2) {}
+
+void DisplayImpl::update() {}
 
 DisplayImpl::~DisplayImpl() {}
 //---------------------------------------------------------------------------------------
 //TODO: ---------------------------------------------------------------------------------
 
-DisplayImpl::Display(): buffer(0) {
+DisplayImpl::DisplayImpl(): buffer(0) {
     //TODO: RCC configuration
     {
         FastInterruptDisableLock dLock;
@@ -141,8 +149,8 @@ DisplayImpl::Display(): buffer(0) {
         SPI1->CR1=SPI_CR1_SSM  //Software cs
                 | SPI_CR1_SSI  //Hardware cs internally tied high
                 | SPI_CR1_MSTR //Master mode
-                | SPI_CR1_SPE; //SPI enabled
-                | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
+                | SPI_CR1_SPE  //SPI enabled
+                | (3<<3);        //Divide input clock by 16: 84/16=5.25MHz
         //RCC something and stuff..
         //Spi1en..
     }
@@ -156,7 +164,7 @@ DisplayImpl::Display(): buffer(0) {
         sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
         csx::mode(Mode::OUTPUT);
         dcx::mode(Mode::OUTPUT);
-        rsx::mode(Mode::OUTPUT);
+        resx::mode(Mode::OUTPUT);
 
         //TODO: RCC something...
     }
@@ -217,3 +225,5 @@ DisplayImpl::Display(): buffer(0) {
 
 
 }
+
+#endif

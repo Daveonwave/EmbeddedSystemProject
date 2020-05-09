@@ -6,17 +6,17 @@
 #ifndef DISPLAY_ST7735H
 #define DISPLAY_ST7735H
 
-#ifdef _BOARD_STM32F407VG_STM32F4DISCOVERY
+#ifdef _BOARD_STM32F4DISCOVERY
 
-#include "mxgui/config/mxgui_settings.h"
-#include "mxgui/display.h"
-#include "mxgui/point.h"
-#include "mxgui/color.h"
-#include "mxgui/font.h"
-#include "mxgui/image.h"
-#include "mxgui/iterator_direction.h"
-#include "mxgui/misc_inst.h"
-#include "mxgui/line.h"
+#include <config/mxgui_settings.h>
+#include "display.h"
+#include "point.h"
+#include "color.h"
+#include "font.h"
+#include "image.h"
+#include "iterator_direction.h"
+#include "misc_inst.h"
+#include "line.h"
 
 #include <cstdio>
 #include <cstring>
@@ -24,11 +24,11 @@
 
 namespace mxgui {
 
-//This display can be 12, 16 or 18 bits per pixel, check that the color depth is properly 
+//This display can be 12, 16 or 18 bits per pixel, check that the color depth is properly
 //configured
-//TODO: add MXGUI_COLOR_DEPTH_12_BIT and MXGUI_COLOR_DEPTH_18_BIT which are not present 
+//TODO: add MXGUI_COLOR_DEPTH_12_BIT and MXGUI_COLOR_DEPTH_18_BIT which are not present
 //in mxgui_settings.h
-#ifndef MXGUI_COLOR_DEPTH_12_BIT || MXGUI_COLOR_DEPTH_16_BIT || MXGUI_COLOR_DEPTH_18_BIT
+#ifndef MXGUI_COLOR_DEPTH_16_BIT
 #error The ST7735 driver requires a color depth of 12 or 16 or 18 bits per pixel
 #endif
 
@@ -61,7 +61,7 @@ public:
     /**
      * \return a pair with the display height and width
      */
-    std::pair<short int, short int> doGetSize() const override
+    std::pair<short int, short int> doGetSize() const override;
 
     /**
      * Write text to the display. If text is too long it will be truncated
@@ -103,7 +103,7 @@ public:
      * call any other member function in this class. If you call another
      * member function, for example line(), you have to call beginPixel() again
      * before calling setPixel().
-     * 
+     *
      * MAYBE USELESS IN ST7735
      * This backend does not require it, so it is a blank.
      */
@@ -179,7 +179,7 @@ public:
 
      /**
      * Make all changes done to the display since the last call to update()
-     * visible. 
+     * visible.
      * TODO: understand if it can be useful or not.
      */
     void update() override;
@@ -204,7 +204,7 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            writeRam(color);
+            //writeRam(color);
             return *this;
         }
 
@@ -275,10 +275,10 @@ public:
      * specified by begin. Behaviour is undefined if called before calling
      * begin()
      */
-    pixel_iterator end() const 
+    pixel_iterator end() const
     {
         // Default ctor: pixelLeft is zero
-        return pixel_iterator(); 
+        return pixel_iterator();
     }
 
     /**
@@ -287,25 +287,14 @@ public:
     ~DisplayImpl() override;
 
 private:
+
+    static const short int width = 128;
+    static const short int height = 160;
     /**
      * Constructor.
      * Do not instantiate objects of this type directly from application code.
      */
     DisplayImpl();
-
-    #if defined MXGUI_ORIENTATION_VERTICAL || \
-        defined MXGUI_ORIENTATION_VERTICAL_MIRRORED
-    static const short int width = 128;
-    static const short int height = 160;
-    
-    #elif defined MXGUI_ORIENTATION_HORIZONTAL || \
-          defined MXGUI_ORIENTATION_HORIZONTAL_MIRRORED
-    static const short int width = 128;
-    static const short int height = 160;
-    
-    #else
-    #error No orientation defined
-    #endif
 
     /**
      * Set cursor to desired location
@@ -339,4 +328,3 @@ private:
 #endif //_BOARD_STM32F407VG_STM32F4DISCOVERY
 
 #endif //DISPLAY_ST7735H
-
