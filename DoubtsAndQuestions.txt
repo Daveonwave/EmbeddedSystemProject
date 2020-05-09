@@ -11,3 +11,13 @@ DOMANDE E DUBBI:
 - ci sono tre spi nella board...possiamo usare quella che vogliamo?
 - buffer reinterpret_cast what does it mean?
 - csx connesso con spi_nss o output normale?
+
+
+PIN DISPLAY:
+5V = 3v3
+gnd = gnd
+scl = A5
+sda = A7
+cs = A4
+rst = B5
+dcx = B6
