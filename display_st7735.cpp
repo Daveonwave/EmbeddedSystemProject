@@ -12,9 +12,9 @@ namespace mxgui {
 //Control interface
 typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
 typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOA_BASE, 4> csx; //free I/O pin
-typedef Gpio<GPIOB_BASE, 5> resx; //free I/O pin
-typedef Gpio<GPIOB_BASE, 6> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOB_BASE, 6> csx; //free I/O pin
+typedef Gpio<GPIOC_BASE, 7> resx; //free I/O pin
+typedef Gpio<GPIOA_BASE, 9> dcx; //free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 
@@ -99,6 +99,40 @@ void DisplayImpl::doTurnOn() {
         //TODO: RCC something...
     }
 
+    const unsigned char initCmds[]={
+        0x01, 0x00,                         // ST7735_SWRESET
+        0x11, 0x00,                         // ST7735_SLPOUT
+        0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
+        0xB1, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR1, normal mode frame rate
+        0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
+        0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
+        0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
+        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
+        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+        0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
+        0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
+            0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
+            0x21, 0x1B, 0x13, 0x19,         // accurate colors)
+            0x17, 0x15, 0x1E, 0x2B,
+            0x04, 0x05, 0x02, 0x0E,
+        0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
+            0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
+            0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
+            0x1B, 0x1A, 0x24, 0x2B,
+            0x06, 0x06, 0x02, 0x0F,
+        0x2A, 0x04,                         // ST7735_CASET, column address
+            0x00, 0x00,                     // x_start = 0
+            0x00, 0x7F,                     // x_end = 127
+        0x2B, 0x04,                         // ST7735_RASET, row address
+            0x00, 0x00,                     // x_start = 0
+            0x00, 0x9F,                     // x_end = 159
+        0x13, 0x00,                         // ST7735_NORON, normal display mode on
+        0x29, 0x00,                         // ST7735_DISPON, display on
+        0x00                                //END while
+    };
+
     //Instructions for initialization...
     sendCmd(0x01, 0);                       // ST7735_SWRESET
     delayMs(150);
@@ -148,11 +182,22 @@ void DisplayImpl::doTurnOn() {
     sendCmd(0x29, 0);                       // ST7735_DISPON, display on
     delayMs(150);
 
+    /*Thread::sleep(4000);
+    doTurnOff();
+
+    Thread::sleep(4000);
+    sendCmd(0x29, 0);                       // ST7735_DISPON, display on
+    delayMs(150);
+
+    Thread::sleep(4000);
+    doTurnOff();*/
+
 
 }
 
 void DisplayImpl::doTurnOff() {
     sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN
+    delayMs(150);
 }
 
 //No function to set brightness
@@ -204,7 +249,7 @@ DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
         return pixel_iterator();
     }
 
-void DisplayImpl::setCursor(Point p) {}
+//void DisplayImpl::setCursor(Point p) {}
 
 void DisplayImpl::textWindow(Point p1, Point p2) {}
 
@@ -216,29 +261,32 @@ DisplayImpl::~DisplayImpl() {}
 //---------------------------------------------------------------------------------------
 //TODO: ---------------------------------------------------------------------------------
 
-
 void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
 {
-    SPITransaction t;
+    /*SPITransaction t;
     {
         CommandTransaction c;
         writeRam(reg);
     }
-    writeRam(data);
+    writeRam(data);*/
 }
 
 void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
 {
-    SPITransaction t;
+    /*SPITransaction t;
     {
         CommandTransaction c;
         writeRam(reg);
     }
-    if(data) for(int i=0;i<len;i++) writeRam(*data++);
+    if(data) for(int i=0;i<len;i++) writeRam(*data++);*/
 }
 
 
-DisplayImpl::DisplayImpl(): buffer(0) {}
+DisplayImpl::DisplayImpl(): buffer(0) {
+
+    doTurnOn();
+
+}
 
 
 

@@ -1,0 +1,5 @@
+PA5     ---> SCL (SCK)
+PA7     ---> SDA (MOSI)
+PC7 	---> RES
+PA9	---> DC
+PB6	---> CS

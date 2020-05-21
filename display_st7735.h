@@ -17,7 +17,7 @@
 #include "iterator_direction.h"
 #include "misc_inst.h"
 #include "line.h"
-
+#include "miosix.h"
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -204,7 +204,7 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            writeRam(color);
+            //writeRam(color);
             return *this;
         }
 
@@ -340,12 +340,12 @@ private:
      * The SPI chip select must be low before calling this member function
      * \param data data to write
      */
-    static unsigned short writeRam(unsigned char data)
+    /*static unsigned short writeRam(unsigned char data)
     {
         SPI1->DR=data;
         while((SPI1->SR & SPI_SR_RXNE)==0) ;
         return SPI1->DR; //Note: reading back SPI1->DR is necessary.
-    }
+    }*/
 
     /**
      * Write data to a display register
@@ -353,7 +353,7 @@ private:
      * \param data data to write
      */
     static void writeReg(unsigned char reg, unsigned char data);
-    
+
     /**
      * Write data to a display register
      * \param reg which register?
