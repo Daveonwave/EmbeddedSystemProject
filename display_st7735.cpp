@@ -70,76 +70,6 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    sendCmd(0x29, 0);   //ST7735_DISPON
-    delayMs(150);       //Should be 120ms, TODO: maybe noy necessary!
-}
-
-void DisplayImpl::doTurnOff() {
-    sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN
-}
-
-//No function to set brightness
-void DisplayImpl::doSetBrightness(int brt) {}
-
-pair<short int, short int> DisplayImpl::doGetSize() const {
-    return make_pair(height, width);
-}
-
-void DisplayImpl::write(Point p, const char *text) {
-    font.draw(*this, textColor, p, text);
-}
-
-void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
-    font.clippedDraw(*this, textColor, p, a, b, text);
-}
-
-void DisplayImpl::clear(Color color) {
-    clear(Point(0,0), Point(width-1,  height-1), color);
-}
-
-//TODO: TO IMPLEMENT ---------------------------------------------------------------------
-//----------------------------------------------------------------------------------------
-void DisplayImpl::clear(Point p1, Point p2, Color color) {}
-
-void DisplayImpl::beginPixel() {}
-
-void DisplayImpl::setPixel(Point p, Color color) {}
-
-void DisplayImpl::line(Point a, Point b, Color color) {}
-
-void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
-
-Color *DisplayImpl::getScanLineBuffer() {
-    Color *color = NULL;
-    return color;
-}
-
-void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
-
-void DisplayImpl::drawImage(Point p, const ImageBase& img) {}
-
-void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
-
-void DisplayImpl::drawRectangle(Point a, Point b, Color c) {}
-
-DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
-    Point p2, IteratorDirection d) {
-        return pixel_iterator();
-    }
-
-void DisplayImpl::setCursor(Point p) {}
-
-void DisplayImpl::textWindow(Point p1, Point p2) {}
-
-void DisplayImpl::imageWindow(Point p1, Point p2) {}
-
-void DisplayImpl::update() {}
-
-DisplayImpl::~DisplayImpl() {}
-//---------------------------------------------------------------------------------------
-//TODO: ---------------------------------------------------------------------------------
-
-DisplayImpl::DisplayImpl(): buffer(0) {
     //TODO: RCC configuration
     {
         FastInterruptDisableLock dLock;
@@ -218,12 +148,100 @@ DisplayImpl::DisplayImpl(): buffer(0) {
     sendCmd(0x29, 0);                       // ST7735_DISPON, display on
     delayMs(150);
 
-}
-
-
-
-
 
 }
 
+void DisplayImpl::doTurnOff() {
+    sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN
+}
+
+//No function to set brightness
+void DisplayImpl::doSetBrightness(int brt) {}
+
+pair<short int, short int> DisplayImpl::doGetSize() const {
+    return make_pair(height, width);
+}
+
+void DisplayImpl::write(Point p, const char *text) {
+    font.draw(*this, textColor, p, text);
+}
+
+void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
+    font.clippedDraw(*this, textColor, p, a, b, text);
+}
+
+void DisplayImpl::clear(Color color) {
+    clear(Point(0,0), Point(width-1,  height-1), color);
+}
+
+//TODO: TO IMPLEMENT ---------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void DisplayImpl::clear(Point p1, Point p2, Color color) {}
+
+void DisplayImpl::beginPixel() {}
+
+void DisplayImpl::setPixel(Point p, Color color) {}
+
+void DisplayImpl::line(Point a, Point b, Color color) {}
+
+void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
+
+Color *DisplayImpl::getScanLineBuffer() {
+    Color *color = NULL;
+    return color;
+}
+
+void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
+
+void DisplayImpl::drawImage(Point p, const ImageBase& img) {}
+
+void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
+
+void DisplayImpl::drawRectangle(Point a, Point b, Color c) {}
+
+DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
+    Point p2, IteratorDirection d) {
+        return pixel_iterator();
+    }
+
+void DisplayImpl::setCursor(Point p) {}
+
+void DisplayImpl::textWindow(Point p1, Point p2) {}
+
+void DisplayImpl::imageWindow(Point p1, Point p2) {}
+
+void DisplayImpl::update() {}
+
+DisplayImpl::~DisplayImpl() {}
+//---------------------------------------------------------------------------------------
+//TODO: ---------------------------------------------------------------------------------
+
+
+void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
+{
+    SPITransaction t;
+    {
+        CommandTransaction c;
+        writeRam(reg);
+    }
+    writeRam(data);
+}
+
+void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
+{
+    SPITransaction t;
+    {
+        CommandTransaction c;
+        writeRam(reg);
+    }
+    if(data) for(int i=0;i<len;i++) writeRam(*data++);
+}
+
+
+DisplayImpl::DisplayImpl(): buffer(0) {}
+
+
+
+
+}
 #endif

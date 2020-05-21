@@ -204,7 +204,7 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            //writeRam(color);
+            writeRam(color);
             return *this;
         }
 
@@ -300,7 +300,16 @@ private:
      * Set cursor to desired location
      * \param point where to set cursor (0<=x<132, 0<=y<162)
      */
-    static void setCursor(Point p);
+    static void setCursor(Point p)
+    {
+        /*
+         * This is not the most efficent way to set the cursor, as the window
+         * command requires to send 9 bytes through the SPI. Each display
+         * controller usually has a faster set cursor command, but we don't
+         * have the datasheet...
+         */
+        window(p,p);
+    }
 
     /**
      * Set a hardware window on the screen, optimized for writing text.
@@ -319,6 +328,39 @@ private:
      * \param p2 lower right corner of the window
      */
     static void imageWindow(Point p1, Point p2);
+
+    /**
+     * Common part of all window commands
+     */
+    static void window(Point p1, Point p2);
+
+
+    /**
+     * Used to send pixel data to the display's RAM, and also to send commands.
+     * The SPI chip select must be low before calling this member function
+     * \param data data to write
+     */
+    static unsigned short writeRam(unsigned char data)
+    {
+        SPI1->DR=data;
+        while((SPI1->SR & SPI_SR_RXNE)==0) ;
+        return SPI1->DR; //Note: reading back SPI1->DR is necessary.
+    }
+
+    /**
+     * Write data to a display register
+     * \param reg which register?
+     * \param data data to write
+     */
+    static void writeReg(unsigned char reg, unsigned char data);
+    
+    /**
+     * Write data to a display register
+     * \param reg which register?
+     * \param data data to write, if null only reg will be written (zero arg cmd)
+     * \param len length of data, number of argument bytes
+     */
+    static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
 
     Color *buffer; ///< For scanLineBuffer
 };
