@@ -298,7 +298,7 @@ private:
 
     /**
      * Set cursor to desired location
-     * \param point where to set cursor (0<=x<132, 0<=y<162)
+     * \param point where to set cursor (0<=x<127, 0<=y<159)
      */
     static void setCursor(Point p)
     {
@@ -363,6 +363,7 @@ private:
     static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
 
     Color *buffer; ///< For scanLineBuffer
+    int which; ///< Currently empty buffer
 };
 
 } //namespace mxgui

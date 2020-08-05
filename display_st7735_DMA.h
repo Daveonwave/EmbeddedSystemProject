@@ -328,7 +328,7 @@ private:
      * Set cursor to desired location
      * \param point where to set cursor (0<=x<132, 0<=y<162)
      */
-    static void setCursor(Point p)
+    static inline void setCursor(Point p)
     {
         /*
          * Maybe there is a more efficient way
@@ -337,13 +337,28 @@ private:
     }
 
     /**
+    *   register 0x36: bit 7------0
+    *       |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
+    *       ||||+---  RGB BRG order (0 for RGB)
+    *       |||+----  ML vertical refesh (0 T-to-D, 1 D-to-T)
+    *       ||+-----  MV row column exchange
+    *       |+------  MX column address order
+    *       +-------  MY row address order
+    */
+    /**
      * Set a hardware window on the screen, optimized for writing text.
      * The GRAM increment will be set to up-to-down first, then left-to-right
      * which is the correct increment to draw fonts
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void textWindow(Point p1, Point p2);
+    static inline void textWindow(Point p1, Point p2) {
+        writeReg (0x36, 0x20);
+        /*  reg 0x36 is MADCTL (memory data access control)
+        *   value 0x20 is YXV=001 ML=0 RGB=0 MH=0  --> 00100000
+        */
+        window(p1, p2);
+    }
 
     /**
      * Set a hardware window on the screen, optimized for drawing images.
@@ -352,7 +367,13 @@ private:
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void imageWindow(Point p1, Point p2);
+    static inline void imageWindow(Point p1, Point p2){
+        writeReg (0x36, 0x0);
+        /*  reg 0x36 is MADCTL (memory data access control)
+        *   value 0x0 is YXV=000 ML=0 RGB=0 MH=0  --> 00000000
+        */
+        window(p1, p2);
+    }
 
     /**
      * Common part of all window commands
@@ -425,7 +446,7 @@ private:
      */
     static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
 
-    
+
     /**
      * Start a DMA transfer to the display
      * \param data pointer to the data to be written
@@ -435,7 +456,7 @@ private:
      * repeatedly read length times
      */
     void startDmaTransfer(const unsigned short *data, int length, bool increm);
-    
+
     /**
      * Check if a pending DMA transfer is in progress, and wait for
      * its completion

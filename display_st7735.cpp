@@ -182,16 +182,12 @@ void DisplayImpl::doTurnOn() {
     sendCmd(0x29, 0);                       // ST7735_DISPON, display on
     delayMs(150);
 
-    /*Thread::sleep(4000);
-    doTurnOff();
-
+    delayMs(4000);
     Thread::sleep(4000);
-    sendCmd(0x29, 0);                       // ST7735_DISPON, display on
-    delayMs(150);
-
+    sendCmd(0x28, 0);                       // ST7735_DISPOFF, display off
+    delayMs(4000);
     Thread::sleep(4000);
-    doTurnOff();*/
-
+    clear(black);
 
 }
 
@@ -282,7 +278,7 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
 }
 
 
-DisplayImpl::DisplayImpl(): buffer(0) {
+DisplayImpl::DisplayImpl(): which(0) {
 
     doTurnOn();
 
