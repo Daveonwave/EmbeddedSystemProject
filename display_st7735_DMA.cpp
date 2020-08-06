@@ -14,7 +14,7 @@ using namespace miosix;
 void __attribute__((naked)) DMA2_Stream3_IRQHandler()
 {
     saveContext();
-    asm volatile("bl _Z20SPI1txDmaHandlerImplv");  //TODO: controllare parametro stringa
+    asm volatile("bl _Z20SPI1txDmaHandlerImplv");  //TODO: controllare branch to label assembly
     restoreContext();
 }
 
@@ -56,7 +56,7 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    //TODO: RCC configuration
+    //TODO: BSP configuration?? (vedi sony-newman)
     {
         FastInterruptDisableLock dLock;
 
@@ -85,10 +85,13 @@ void DisplayImpl::doTurnOn() {
     Thread::sleep(10);
     resx::high();
     Thread::sleep(10);
+    
+    writeReg(0x01, 0x00)    // ST7735_SWRESET
+    delayMs(150)
+    writeReg(0x11, 0x00)    // ST7735_SLPOUT
+    delayMs(255)
 
     const unsigned char initCmds[] = {
-        0x01, 0x00,                         // ST7735_SWRESET
-        0x11, 0x00,                         // ST7735_SLPOUT
         0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
         0xB1, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR1, normal mode frame rate
         0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
@@ -139,8 +142,8 @@ void DisplayImpl::doTurnOn() {
 }
 
 void DisplayImpl::doTurnOff() {
-    sendCmd(0x28, 0);   //ST7735_DISPOFF TODO: should be followed by SLPIN
-    delayMs(150);
+    waitDmaCompletion();
+    //TODO: implementation
 }
 
 //No function to set brightness
@@ -151,10 +154,12 @@ pair<short int, short int> DisplayImpl::doGetSize() const {
 }
 
 void DisplayImpl::write(Point p, const char *text) {
+    waitDmaCompletion();
     font.draw(*this, textColor, p, text);
 }
 
 void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
+    waitDmaCompletion();
     font.clippedDraw(*this, textColor, p, a, b, text);
 }
 
@@ -162,79 +167,140 @@ void DisplayImpl::clear(Color color) {
     clear(Point(0,0), Point(width-1,  height-1), color);
 }
 
-//TODO: TO IMPLEMENT ---------------------------------------------------------------------
-//----------------------------------------------------------------------------------------
+//TODO: TO IMPLEMENT
 void DisplayImpl::clear(Point p1, Point p2, Color color) {
-    imageWindow(p1,p2);
+    waitDmaCompletion();
+    imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
     pixel = color;
+    startDmaTransfer(&pixel, numPixels, false);
 }
 
-void DisplayImpl::beginPixel() {}
+void DisplayImpl::beginPixel() {
+    waitDmaCompletion();
+    //TODO: find out implementation
+    imageWindow(Point(0,0), Point(width-1, height-1));
+}
 
-void DisplayImpl::setPixel(Point p, Color color) {}
+void DisplayImpl::setPixel(Point p, Color color) {
+    setCursor(p);
+    SPITransaction t;
+    writeRamBegin();
+    writeRam(color);
+    writeRamEnd();
+}
 
-void DisplayImpl::line(Point a, Point b, Color color) {}
+void DisplayImpl::line(Point a, Point b, Color color) {
+    waitDmaCompletion();
+    //Horizontal line speed optimization
+    if(a.y() == b.y())
+    {
+        imageWindow(Point(min(a.x(), b.x()), a.y()),
+                    Point(max(a.x(), b.x()), a.y()));
+        int numPixels = abs(a.x() - b.x());
+        pixel = color;
+        startDmaTransfer(&pixel, numPixels + 1, false);
+        return;
+    }
+    //Vertical line speed optimization
+    if(a.x() == b.x())
+    {
+        textWindow(Point(a.x(), min(a.y(), b.y())),
+                    Point(a.x(), max(a.y(), b.y())));
+        int numPixels = abs(a.y() - b.y());
+        pixel = color;
+        startDmaTransfer(&pixel, numPixels + 1, false);
+        return;
+    }
+    //TODO: check comments
+    //General case, always works but it is much slower due to the display
+    //not having fast random access to pixels
+    Line::draw(*this, a, b, color);
+}
 
-void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
+void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {
+    waitDmaCompletion();
+    imageWindow(p, Point(width - 1, p.y()));
+    startDmaTransfer(colors, length, true);
+    waitDmaCompletion();
+}
 
 Color *DisplayImpl::getScanLineBuffer() {
-    Color *color = NULL;
-    return color;
+    return buffers[which];
 }
 
-void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
+void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {
+    waitDmaCompletion();
+    imageWindow(p, Point(width - 1, p.y()));
+    startDmaTransfer(buffers[which], length, true);
+    which = (which == 0 ? 1 : 0);
+}
 
-void DisplayImpl::drawImage(Point p, const ImageBase& img) {}
+void DisplayImpl::drawImage(Point p, const ImageBase& img) {
+    short int xEnd = p.x() + img.getWidth() - 1;
+    short int yEnd = p.y() + img.getHeight() - 1;
+    if(xEnd >= width || yEnd >= height) return;
+    
+    waitDmaCompletion();
 
-void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
+    const unsigned short *imgData = img.getData();
+    if(imgData!=0)
+    {
+        //Optimized version for memory-loaded images
+        imageWindow(p, Point(xEnd,yEnd));
+        int numPixels = img.getHeight() * img.getWidth();
+        startDmaTransfer(imgData, numPixels, true);
+        //TODO: check this REINTERPRED CAST
+        //If the image is in RAM don't overlap I/O, as the caller could
+        //deallocate it. If it is in FLASH it's guaranteed to be const
+        if(reinterpret_cast<unsigned int>(imgData)>=0x20000000)
+            waitDmaCompletion();
+    } else img.draw(*this, p);
+}
 
-void DisplayImpl::drawRectangle(Point a, Point b, Color c) {}
+void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {
+    waitDmaCompletion();
+    img.clippedDraw(*this, p, a, b);
+}
+
+void DisplayImpl::drawRectangle(Point a, Point b, Color c) {
+    line(a,Point(b.x(), a.y()), c);
+    line(Point(b.x(), a.y()), b, c);
+    line(b,Point(a.x(), b.y()), c);
+    line(Point(a.x(), b.y()), a, c);
+}
+
+void DisplayImpl::update() { waitDmaCompletion(); }
 
 DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
-    Point p2, IteratorDirection d) {
+    Point p2, IteratorDirection d) 
+{
+    if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) return pixel_iterator();
+    if(p1.x() >= width || p1.y() >= height || p2.x() >= width || p2.y() >= height)
         return pixel_iterator();
-    }
+    if(p2.x() < p1.x() || p2.y() < p1.y()) return pixel_iterator();
+    
+    waitDmaCompletion();
 
-//void DisplayImpl::setCursor(Point p) {}
-
-void DisplayImpl::textWindow(Point p1, Point p2) {}
-
-void DisplayImpl::imageWindow(Point p1, Point p2) {}
-
-void DisplayImpl::update() {}
-
-DisplayImpl::~DisplayImpl() {}
-//---------------------------------------------------------------------------------------
-//TODO: ---------------------------------------------------------------------------------
-
-void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
-{
-    /*SPITransaction t;
-    {
-        CommandTransaction c;
-        writeRam(reg);
-    }
-    writeRam(data);*/
+    if(d == DR) textWindow(p1, p2);
+    else imageWindow(p1, p2);
+    
+    csx::low(); //Will be deasserted by the iterator
+    writeRamBegin();
+    
+    unsigned int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
+    return pixel_iterator(numPixels);
 }
 
-void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
-{
-    /*SPITransaction t;
-    {
-        CommandTransaction c;
-        writeRam(reg);
-    }
-    if(data) for(int i=0;i<len;i++) writeRam(*data++);*/
-}
 
-DisplayImpl::DisplayImpl(): buffer(0) {
+DisplayImpl::DisplayImpl(): which(0) {
 
     doTurnOn();
     setFont(droid11);
     setTextColor(make_pair(Color(0xffff),Color(0x0000)));
 }
 
+//TODO: implement with CASET and RASET
 void DisplayImpl::window(Point p1, Point p2)
 {
     //Taken from underverk's SmartWatch_Toolchain/src/driver_display.c
@@ -248,18 +314,42 @@ void DisplayImpl::window(Point p1, Point p2)
     // writeReg(0x0a, buffer, sizeof(buffer));
 }
 
-static inline void textWindow(Point p1, Point p2){
-    sendCmd(0x36, 1, 0x08);     // ST7735_MADCTL, row/col addr, bottom-top refresh
-    //window(p1, p2);
+/**
+ * Write only commands with one parameter
+ */
+void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
+{
+    SPITransaction t;
+    {
+        CommandTransaction c;
+        writeRam(reg);
+    }
+    writeRam(data);
 }
 
+/**
+ * Write commands with more parameters
+ */
+void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
+{
+    SPITransaction t;
+    {
+        CommandTransaction c;
+        writeRam(reg);
+    }
+    if(data) for(int i=0;i<len;i++) writeRam(*data++);
+}
+
+/**
+ * Start data transfer with DMA. We take this from sony-newman implementation.
+ */
 void DisplayImpl::startDmaTransfer(const unsigned short *data, int length,
         bool increm)
 {
     csx::low();
     {
         CommandTransaction c;
-        writeRam(0xc); //TODO: cambiare come in .h
+        //writeRam(0xc); //TODO: cambiare come in .h
     }
     //Wait until the SPI is busy, required otherwise the last byte is not fully sent
     while((SPI1->SR & SPI_SR_TXE) == 0) ;
@@ -297,6 +387,9 @@ void DisplayImpl::startDmaTransfer(const unsigned short *data, int length,
                 | DMA_SxCR_EN;     //Start DMA
 }
 
+/**
+ * Wait the completion of data transfer with DMA. We take this from Sony-Newman implementation.
+ */
 void DisplayImpl::waitDmaCompletion()
 {
     if(dmaTransferActivated==false) return; //Nothing to do

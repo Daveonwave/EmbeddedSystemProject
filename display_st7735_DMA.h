@@ -380,13 +380,6 @@ private:
      */
     static void window(Point p1, Point p2);
 
-
-    /**
-     * Used to send pixel data to the display's RAM, and also to send commands.
-     * The SPI chip select must be low before calling this member function
-     * \param data data to write
-     */
-
     /**
      * TODO: change comment
      * Sends command 0xc which seems to be the one to start sending pixels.
@@ -395,7 +388,7 @@ private:
     static void writeRamBegin()
     {
         CommandTransaction c;
-        writeRam(0xc); //TODO: do we have a similar command?
+        //writeRam(0xc); //TODO: do we have a similar command?
         //Change SPI interface to 16 bit mode, for faster pixel transfer
         SPI1->CR1=0;
         SPI1->CR1=SPI_CR1_SSM
