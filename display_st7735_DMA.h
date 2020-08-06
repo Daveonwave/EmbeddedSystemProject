@@ -36,6 +36,10 @@ namespace mxgui {
 #error The ST7735 driver requires a color depth of 12 or 16 or 18 bits per pixel
 #endif
 
+#ifndef MXGUI_ORIENTATION_VERTICAL
+#error Unsupported orientation
+#endif
+
 //Control interface
 typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
 typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
@@ -319,7 +323,6 @@ public:
     ~DisplayImpl() override;
 
 private:
-
     static const short int width = 128;
     static const short int height = 160;
     /**

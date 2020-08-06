@@ -1,5 +1,4 @@
 #include "display_st7735.h"
-#include "miosix.h"
 #include <kernel/scheduler/scheduler.h>
 
 using namespace std;
@@ -306,13 +305,13 @@ void DisplayImpl::window(Point p1, Point p2)
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
-    writeReg(0x2A, buff_caset, sizeof(buff_caset))
+    writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
-    writeReg(0x2B, buff_raset, sizeof(buff_raset))
+    writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 
 /**
