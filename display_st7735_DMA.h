@@ -21,6 +21,10 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
+#include <cstdarg>
+
+using namespace std;
+using namespace miosix;
 
 namespace mxgui {
 
@@ -353,10 +357,9 @@ private:
      * \param p2 lower right corner of the window
      */
     static inline void textWindow(Point p1, Point p2) {
+        // reg 0x36 is MADCTL (memory data access control)
+        // value 0x20 is YXV=001 ML=0 RGB=0 MH=0  --> 00100000
         writeReg (0x36, 0x20);
-        /*  reg 0x36 is MADCTL (memory data access control)
-        *   value 0x20 is YXV=001 ML=0 RGB=0 MH=0  --> 00100000
-        */
         window(p1, p2);
     }
 
@@ -368,10 +371,9 @@ private:
      * \param p2 lower right corner of the window
      */
     static inline void imageWindow(Point p1, Point p2){
-        writeReg (0x36, 0x0);
-        /*  reg 0x36 is MADCTL (memory data access control)
-        *   value 0x0 is YXV=000 ML=0 RGB=0 MH=0  --> 00000000
-        */
+        // reg 0x36 is MADCTL (memory data access control)
+        // value 0x0 is YXV=000 ML=0 RGB=0 MH=0  --> 00000000
+        writeReg (0x36, 0x00, 0x01);
         window(p1, p2);
     }
 
@@ -388,10 +390,10 @@ private:
     static void writeRamBegin()
     {
         CommandTransaction c;
-        //writeRam(0xc); //TODO: do we have a similar command?
+        writeRam(0x2C);     //ST7735_RAMWR
         //Change SPI interface to 16 bit mode, for faster pixel transfer
-        SPI1->CR1=0;
-        SPI1->CR1=SPI_CR1_SSM
+        SPI1->CR1 = 0;
+        SPI1->CR1 = SPI_CR1_SSM
             | SPI_CR1_SSI
             | SPI_CR1_DFF //TODO: this could be useless
             | SPI_CR1_MSTR
@@ -405,7 +407,7 @@ private:
      */
     static unsigned short writeRam(unsigned char data)
     {
-        SPI1->DR=data;
+        SPI1->DR = data;
         while((SPI1->SR & SPI_SR_RXNE)==0) ;
         return SPI1->DR; //Note: reading back SPI1->DR is necessary.
     }
@@ -417,8 +419,8 @@ private:
     static void writeRamEnd()
     {
         //Put SPI back into 8 bit mode
-        SPI1->CR1=0;
-        SPI1->CR1=SPI_CR1_SSM
+        SPI1->CR1 = 0;
+        SPI1->CR1 = SPI_CR1_SSM
             | SPI_CR1_SSI
             | SPI_CR1_MSTR
             | SPI_CR1_SPE;
@@ -439,6 +441,9 @@ private:
      */
     static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
 
+    //TODO: implement a sendCmd with the while to send unsigned arrays of commands
+    //      and call writeReg
+    static void sendCmds(const unsigned char *cmds){}
 
     /**
      * Start a DMA transfer to the display

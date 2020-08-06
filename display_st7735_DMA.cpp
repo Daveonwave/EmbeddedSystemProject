@@ -1,7 +1,6 @@
 #include "display_st7735.h"
 #include "miosix.h"
 #include <kernel/scheduler/scheduler.h>
-#include <cstdarg>
 
 using namespace std;
 using namespace miosix;
@@ -86,10 +85,10 @@ void DisplayImpl::doTurnOn() {
     resx::high();
     Thread::sleep(10);
     
-    writeReg(0x01, 0x00)    // ST7735_SWRESET
-    delayMs(150)
-    writeReg(0x11, 0x00)    // ST7735_SLPOUT
-    delayMs(255)
+    writeReg(0x01);    // ST7735_SWRESET
+    delayMs(150);
+    writeReg(0x11);    // ST7735_SLPOUT
+    delayMs(255);
 
     const unsigned char initCmds[] = {
         0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
@@ -303,15 +302,17 @@ DisplayImpl::DisplayImpl(): which(0) {
 //TODO: implement with CASET and RASET
 void DisplayImpl::window(Point p1, Point p2)
 {
-    //Taken from underverk's SmartWatch_Toolchain/src/driver_display.c
-    unsigned char buffer[8];
-    unsigned char y0 = p1.y() + 0x1c;
-    unsigned char y1 = p2.y() + 0x1c;
-    buffer[0] = p1.x()>>4; buffer[1] = p1.x() & 15;
-    buffer[2] = p2.x()>>4; buffer[3] = p2.x() & 15;
-    buffer[4] = y0>>4;     buffer[5] = y0 & 15;
-    buffer[6] = y1>>4;     buffer[7] = y1 & 15;
-    // writeReg(0x0a, buffer, sizeof(buffer));
+    //Setting column bounds, ST7735_CASET
+    unsigned char buff_caset[4];
+    buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
+    buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
+    writeReg(0x2A, buff_caset, sizeof(buff_caset))
+    
+    //Setting row bounds, ST7735_RASET
+    unsigned char buff_raset[4];
+    buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
+    buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
+    writeReg(0x2B, buff_raset, sizeof(buff_raset))
 }
 
 /**
@@ -349,7 +350,7 @@ void DisplayImpl::startDmaTransfer(const unsigned short *data, int length,
     csx::low();
     {
         CommandTransaction c;
-        //writeRam(0xc); //TODO: cambiare come in .h
+        writeRam(0x2C);     // ST7735_RAMWR, no restriction on length of parameters
     }
     //Wait until the SPI is busy, required otherwise the last byte is not fully sent
     while((SPI1->SR & SPI_SR_TXE) == 0) ;
@@ -414,7 +415,7 @@ void DisplayImpl::waitDmaCompletion()
     NVIC_DisableIRQ(DMA2_Stream3_IRQn);
 
     //Wait for last byte to be sent
-    while((SPI1->SR & SPI_SR_TXE)==0) ;
+    while((SPI1->SR & SPI_SR_TXE) == 0) ;
     while(SPI1->SR & SPI_SR_BSY) ;
 
     csx::high();
