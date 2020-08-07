@@ -17,7 +17,6 @@
 #include "iterator_direction.h"
 #include "misc_inst.h"
 #include "line.h"
-#include "miosix.h"
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -45,11 +44,6 @@ namespace mxgui {
 class DisplayST7735 : public Display
 {
 public:
-    /**
-     * Default contructor
-     */
-    DisplayST7735();
-
     /**
      * \return an instance to this class(singleton)
      */
@@ -303,6 +297,12 @@ public:
     ~DisplayST7735() override;
 
 private:
+
+    /**
+     * Constructor.
+     * Do not instantiate objects of this type directly from application code.
+     */
+    DisplayST7735();
 
     //MXGUI_ORIENTATION ignored
     static const short int width = 128;
