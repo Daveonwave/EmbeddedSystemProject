@@ -296,7 +296,7 @@ DisplayImpl::DisplayImpl(): which(0) {
 
     doTurnOn();
     setFont(droid11);
-    setTextColor(make_pair(Color(0xffff),Color(0x0000)));
+    setTextColor(make_pair(white, black));
 }
 
 //TODO: implement with CASET and RASET

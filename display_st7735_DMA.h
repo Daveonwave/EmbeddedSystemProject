@@ -386,7 +386,6 @@ private:
     static void window(Point p1, Point p2);
 
     /**
-     * TODO: change comment
      * Sends command 0xc which seems to be the one to start sending pixels.
      * Also, change SPI interface to 16 bit mode
      */
@@ -408,7 +407,7 @@ private:
      * The SPI chip select must be low before calling this member function
      * \param data data to write
      */
-    static unsigned short writeRam(unsigned char data)
+    static unsigned short writeRam(unsigned short data)
     {
         SPI1->DR = data;
         while((SPI1->SR & SPI_SR_RXNE)==0) ;
@@ -416,7 +415,6 @@ private:
     }
 
     /**
-     * TODO: do we need this?
      * Ends a pixel transfer to the display
      */
     static void writeRamEnd()
@@ -443,10 +441,6 @@ private:
      * \param len length of data, number of argument bytes
      */
     static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
-
-    //TODO: implement a sendCmd with the while to send unsigned arrays of commands
-    //      and call writeReg
-    static void sendCmds(const unsigned char *cmds){}
 
     /**
      * Start a DMA transfer to the display

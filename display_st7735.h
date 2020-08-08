@@ -22,6 +22,9 @@
 #include <cstring>
 #include <algorithm>
 
+using namespace std;
+using namespace miosix;
+
 namespace mxgui {
 
 //This display can be 12, 16 or 18 bits per pixel, check that the color depth is properly
@@ -31,6 +34,35 @@ namespace mxgui {
 #ifndef MXGUI_COLOR_DEPTH_16_BIT
 #error The ST7735 driver requires a color depth of 12 or 16 or 18 bits per pixel
 #endif
+
+#ifndef MXGUI_ORIENTATION_VERTICAL
+#error Unsupported orientation
+#endif
+
+//Control interface
+typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
+typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 6> csx; //free I/O pin
+typedef Gpio<GPIOC_BASE, 7> resx; //free I/O pin
+typedef Gpio<GPIOA_BASE, 9> dcx; //free I/O pin, used only in 4-line SPI
+//rdx not used in serial, only parallel
+//te not used in serial, only parallel
+
+//A falling edge of CSX enables the SPI1 transaction
+class SPITransaction
+{
+public:
+    SPITransaction()  { csx::low();  }
+    ~SPITransaction() { csx::high(); }
+};
+
+//A falling edge on DCX means that the transmitted byte is a command
+class CommandTransaction
+{
+public:
+    CommandTransaction()  { dcx::low();  }
+    ~CommandTransaction() { dcx::high(); }
+};
 
 class DisplayImpl : public Display
 {
@@ -300,7 +332,10 @@ private:
      * Set cursor to desired location
      * \param point where to set cursor (0<=x<127, 0<=y<159)
      */
-    static void setCursor(Point p);
+    static void setCursor(Point p)
+    {
+        window(p, p);
+    }
 
     /**
      *   register 0x36: bit 7------0
@@ -318,7 +353,11 @@ private:
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void textWindow(Point p1, Point p2);
+    static void textWindow(Point p1, Point p2)
+    {
+        writeReg (0x36, 0x20);
+        window(p1, p2);
+    }
 
     /**
      * Set a hardware window on the screen, optimized for drawing images.
@@ -327,14 +366,82 @@ private:
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void imageWindow(Point p1, Point p2);
+    static void imageWindow(Point p1, Point p2)
+    {
+        writeReg (0x36, 0x00, 1);
+        window(p1, p2);
+    }
 
     /**
      * Common part of all window commands
      */
     static void window(Point p1, Point p2);
 
+    /**
+     * Sends command 0x2c which is the one to start sending pixels.
+     * Also, change SPI interface to 16 bit mode
+     */
+    static void writeRamBegin()
+    {
+        CommandTransaction c;
+        writeRam(0x2C);     //ST7735_RAMWR, to write the GRAM
+        //Change SPI interface to 16 bit mode, for faster pixel transfer
+        SPI1->CR1 = 0;
+        SPI1->CR1 = SPI_CR1_SSM
+                  | SPI_CR1_SSI
+                  | SPI_CR1_DFF 
+                  | SPI_CR1_MSTR
+                  | SPI_CR1_SPE;
+    }
+
+    /**
+     * Used to send pixel data to the display's RAM, and also to send commands.
+     * The SPI chip select must be low before calling this member function
+     * \param data data to write
+     */
+    static unsigned short writeRam(unsigned short data)
+    {
+        SPI1->DR = data;
+        while((SPI1->SR & SPI_SR_RXNE)==0) ;
+        return SPI1->DR; //Note: reading back SPI1->DR is necessary.
+    }
+
+    /**
+     * Ends a pixel transfer to the display
+     */
+    static void writeRamEnd()
+    {
+        //Put SPI back into 8 bit mode
+        SPI1->CR1 = 0;
+        SPI1->CR1 = SPI_CR1_SSM
+                  | SPI_CR1_SSI
+                  | SPI_CR1_MSTR
+                  | SPI_CR1_SPE;
+    }
+
+    /**
+     * Write data to a display register
+     * \param reg which register?
+     * \param data data to write
+     */
+    static void writeReg(unsigned char reg, unsigned char data);
+
+    /**
+     * Write data to a display register
+     * \param reg which register?
+     * \param data data to write, if null only reg will be written (zero arg cmd)
+     * \param len length of data, number of argument bytes
+     */
+    static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
+
+    /**
+     * Send multiple commands to the display MCU (we use to send init sequence)
+     * \param cmds static array containing the commands
+     */
+    static void sendCmds(const unsigned char *cmds);
+
     Color *buffer; ///< For scanLineBuffer
+    Color buffers[2][128]; ///< Line buffers for scanline overlapped I/O
     int which; ///< Currently empty buffer
 };
 
