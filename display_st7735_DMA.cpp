@@ -131,7 +131,7 @@ void DisplayImpl::doTurnOn() {
         cmds+=numArgs;
     }
 
-    clear(black);
+    clear(Color(0x0000));
     waitDmaCompletion();
     
     //Turn on display
@@ -290,6 +290,7 @@ DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
     return pixel_iterator(numPixels);
 }
 
+DisplayImpl::~DisplayImpl() {}
 
 DisplayImpl::DisplayImpl(): which(0) {
 

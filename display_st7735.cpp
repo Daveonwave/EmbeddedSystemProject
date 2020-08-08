@@ -35,23 +35,25 @@ static unsigned char sp1sendRev(unsigned char c=0) {
  * \param len length of the (optional) argument, or 0 for commands without
  * arguments.
  */
-static void sendCmd(unsigned char cmd, int len, ...) {
+static void sendCmd(unsigned char cmd, int len=0, ...) {
     dcx::low(); //tells there is a command
-    csx::low();
+    csx::low(); //enables SPI transmission
     sp1sendRev(cmd);
-    csx::high(); //indicate the start of the transmission
+    csx::high(); //stops the transmission
     delayUs(1); //TODO: delay
     dcx::high(); //tells there are parameters
-    va_list arg;
-    va_start(arg, len);
-    for(int i = 0; i < len; i++)
-    {
-        csx::low();
-        sp1sendRev(va_arg(arg, int));
-        csx::high();
-        delayUs(1);
+    if(len != 0){
+        va_list arg;
+        va_start(arg, len);
+        for(int i = 0; i < len; i++)
+        {
+            csx::low();
+            sp1sendRev(va_arg(arg, int));
+            csx::high();
+            delayUs(1);
+        }
+        va_end(arg);
     }
-    va_end(arg);
 }
 
 /**
@@ -73,6 +75,12 @@ void DisplayImpl::doTurnOn() {
     //TODO: RCC configuration
     {
         FastInterruptDisableLock dLock;
+        
+        //Enable all gpios
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
+                      | RCC_AHB1ENR_GPIOBEN
+                      | RCC_AHB1ENR_GPIOCEN;
+
 
         RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
         SPI1->CR2=0;
@@ -130,6 +138,7 @@ void DisplayImpl::doTurnOn() {
             0x00, 0x9F,                     // x_end = 159
         0x13, 0x00,                         // ST7735_NORON, normal display mode on
         0x29, 0x00,                         // ST7735_DISPON, display on
+        0x2C, 0x00,                         // ST7735_RAMWR, write on GRAM
         0x00                                //END while
     };
 
@@ -182,13 +191,17 @@ void DisplayImpl::doTurnOn() {
     sendCmd(0x29, 0);                       // ST7735_DISPON, display on
     delayMs(150);
 
+    sendCmd(0x2C, 0);                       // ST7735_RAMWR, write in GRAM
+
+    /*
     delayMs(4000);
     Thread::sleep(4000);
     sendCmd(0x28, 0);                       // ST7735_DISPOFF, display off
     delayMs(4000);
     Thread::sleep(4000);
-    clear(black);
+    */
 
+    clear(black);
 }
 
 void DisplayImpl::doTurnOff() {
@@ -215,77 +228,249 @@ void DisplayImpl::clear(Color color) {
     clear(Point(0,0), Point(width-1,  height-1), color);
 }
 
-//TODO: TO IMPLEMENT ---------------------------------------------------------------------
-//----------------------------------------------------------------------------------------
-void DisplayImpl::clear(Point p1, Point p2, Color color) {}
+void DisplayImpl::clear(Point p1, Point p2, Color color) {
+    imageWindow(p1, p2);
+    sendCmd(0x2C, 0);       //ST7735_RAMWR, to enable write on GRAM
+    int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
+    
+    unsigned char msb = 0x00;
+    unsigned char lsb = 0x00;
 
-void DisplayImpl::beginPixel() {}
-
-void DisplayImpl::setPixel(Point p, Color color) {}
-
-void DisplayImpl::line(Point a, Point b, Color color) {}
-
-void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {}
-
-Color *DisplayImpl::getScanLineBuffer() {
-    Color *color = NULL;
-    return color;
+    //Send data to write on GRAM
+    for(int i=0; i < numPixels; i++) { 
+        dcx::high();
+        csx::low();
+        delayUs(1);
+        msb = color >> 8;
+        lsb = color & 0xFF;
+        sp1sendRev(msb);
+        sp1sendRev(lsb);
+        csx::high();
+        delayUs(1);
+    }
 }
 
-void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {}
+void DisplayImpl::beginPixel() {
+    imageWindow(Point(0,0), Point(width-1, height-1));
+}
 
-void DisplayImpl::drawImage(Point p, const ImageBase& img) {}
+void DisplayImpl::setPixel(Point p, Color color) {
+    setCursor(p);
+    sendCmd(0x2C);
 
-void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {}
+    unsigned char msb = 0x00;
+    unsigned char lsb = 0x00;
 
-void DisplayImpl::drawRectangle(Point a, Point b, Color c) {}
+    //Send data to write on GRAM
+    dcx::high();
+    csx::low();
+    delayUs(1);
+    msb = color >> 8;
+    lsb = color & 0xFF;
+    sp1sendRev(msb);
+    sp1sendRev(lsb);
+    csx::high();
+    delayUs(1);
+}
 
-DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
-    Point p2, IteratorDirection d) {
-        return pixel_iterator();
+void DisplayImpl::line(Point a, Point b, Color color) {
+    if(a.y() == b.y())
+    {
+        imageWindow(Point(min(a.x(), b.x()), a.y()),
+                    Point(max(a.x(), b.x()), a.y()));
+        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM            
+        int numPixels = abs(a.x() - b.x());
+        
+        unsigned char msb = 0x00;
+        unsigned char lsb = 0x00;
+
+        //Send data to write on GRAM
+        for(int i=0; i < numPixels; i++) { 
+            dcx::high();
+            csx::low();
+            delayUs(1);
+            msb = color >> 8;
+            lsb = color & 0xFF;
+            sp1sendRev(msb);
+            sp1sendRev(lsb);
+            csx::high();
+            delayUs(1);
+        }
+        return;
     }
+    //Vertical line speed optimization
+    if(a.x() == b.x())
+    {
+        textWindow(Point(a.x(), min(a.y(), b.y())),
+                    Point(a.x(), max(a.y(), b.y())));
+        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM 
+        int numPixels = abs(a.y() - b.y());
+        
+        unsigned char msb = 0x00;
+        unsigned char lsb = 0x00;
 
-//void DisplayImpl::setCursor(Point p) {}
+        //Send data to write on GRAM
+        for(int i=0; i < numPixels; i++) { 
+            dcx::high();
+            csx::low();
+            delayUs(1);
+            msb = color >> 8;
+            lsb = color & 0xFF;
+            sp1sendRev(msb);
+            sp1sendRev(lsb);
+            csx::high();
+            delayUs(1);
+        }
+        return;
+    }
+    //General case, always works but it is much slower due to the display
+    //not having fast random access to pixels
+    Line::draw(*this, a, b, color);
+}
 
-void DisplayImpl::textWindow(Point p1, Point p2) {}
+void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {
+    imageWindow(p, Point(width - 1, p.y()));
+    sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM   
+    
+    if(p.x() + length > width) { return; }
 
-void DisplayImpl::imageWindow(Point p1, Point p2) {}
+    unsigned char msb = 0x00;
+    unsigned char lsb = 0x00;
+
+    //Send data to write on GRAM
+    for(int i=0; i < length; i++) { 
+        dcx::high();
+        csx::low();
+        delayUs(1);
+        msb = colors[i] >> 8;
+        lsb = colors[i] & 0xFF;
+        sp1sendRev(msb);
+        sp1sendRev(lsb);
+        csx::high();
+        delayUs(1);
+    }
+}
+
+//TODO: vedere se funziona questa implementazione
+Color *DisplayImpl::getScanLineBuffer() {
+    if(buffer == 0) { buffer = new Color[getWidth()]; }
+    return buffer;
+}
+
+void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {
+    scanLine(p, buffer, length);
+}
+
+void DisplayImpl::drawImage(Point p, const ImageBase& img) {
+    short int xEnd = p.x() + img.getWidth() - 1;
+    short int yEnd = p.y() + img.getHeight() - 1;
+    if(xEnd >= width || yEnd >= height) { return; }
+
+    const unsigned short *imgData = img.getData();  
+    if(imgData != 0)
+    {
+        //Optimized version for memory-loaded images
+        imageWindow(p, Point(xEnd, yEnd));
+        sendCmd(0x2C);
+        int numPixels = img.getHeight() * img.getWidth();
+
+        unsigned char msb = 0x00;
+        unsigned char lsb = 0x00;
+
+        for(int i=0;i<=numPixels;i++)
+        {
+            dcx::high();
+            csx::low();
+            delayUs(1);
+            msb = *imgData >> 8;
+            lsb = *imgData & 0xFF;
+            sp1sendRev(msb);
+            sp1sendRev(lsb);
+            csx::high();
+            delayUs(1);
+            imgData++;
+        }
+    } 
+    else { img.draw(*this,p); }        
+}
+
+void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {
+    img.clippedDraw(*this,p,a,b);
+}
+
+void DisplayImpl::drawRectangle(Point a, Point b, Color c) {
+    line(a,Point(b.x(), a.y()), c);
+    line(Point(b.x(), a.y()), b, c);
+    line(b,Point(a.x(), b.y()), c);
+    line(Point(a.x(), b.y()), a, c);
+}
 
 void DisplayImpl::update() {}
 
-DisplayImpl::~DisplayImpl() {}
-//---------------------------------------------------------------------------------------
-//TODO: ---------------------------------------------------------------------------------
+DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
+    Point p2, IteratorDirection d) {
+        if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) { 
+            return pixel_iterator(); 
+        }
+        if(p1.x() >= width || p1.y() >= height || p2.x() >= width || p2.y() >= height) {
+            return pixel_iterator();
+        }
+        if(p2.x() < p1.x() || p2.y() < p1.y()) { 
+            return pixel_iterator();
+        }
+    
+        if(d == DR) { textWindow(p1, p2); }
+        else { imageWindow(p1, p2); }
+        
+        sendCmd(0x2C);      //ST7735_RAMWR, write to GRAM
 
-void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
-{
-    /*SPITransaction t;
-    {
-        CommandTransaction c;
-        writeRam(reg);
+        unsigned int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
+        return pixel_iterator(numPixels);
     }
-    writeRam(data);*/
+
+DisplayImpl::~DisplayImpl() {
+    if(buffer) delete[] buffer;
 }
 
-void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
-{
-    /*SPITransaction t;
-    {
-        CommandTransaction c;
-        writeRam(reg);
-    }
-    if(data) for(int i=0;i<len;i++) writeRam(*data++);*/
-}
-
-
-DisplayImpl::DisplayImpl(): which(0) {
-
+DisplayImpl::DisplayImpl(): which(0) { 
     doTurnOn();
-
+    setFont(droid11);
+    setTextColor(make_pair(white, black));
 }
 
+/**
+ * Methods for window size handling.
+ */
+void DisplayImpl::setCursor(Point p) { window(p, p); }
 
-
-
+void DisplayImpl::textWindow(Point p1, Point p2) {
+    sendCmd(0x36, 1, 0x20);
+    window(p1, p2);
 }
-#endif
+
+void DisplayImpl::imageWindow(Point p1, Point p2) {
+    sendCmd(0x36, 1, 0x00);
+    window(p1, p2);
+}
+
+void DisplayImpl::window(Point p1, Point p2) {
+    //Setting column bounds, ST7735_CASET
+    unsigned char buff_caset[4];
+    buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
+    buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
+    sendCmd(0x2A, sizeof(buff_caset), 
+        buff_caset[0], buff_caset[1], 
+        buff_caset[2], buff_caset[3]);
+    
+    //Setting row bounds, ST7735_RASET
+    unsigned char buff_raset[4];
+    buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
+    buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
+    sendCmd(0x2B, sizeof(buff_raset), 
+        buff_raset[0], buff_raset[1], 
+        buff_raset[2], buff_raset[3]);
+}
+
+} //mxgui
+
+#endif //_BOARD_STM32F4DISCOVERY
