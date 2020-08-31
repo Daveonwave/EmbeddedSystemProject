@@ -75,7 +75,7 @@ void DisplayImpl::doTurnOn() {
     //TODO: RCC configuration
     {
         FastInterruptDisableLock dLock;
-        
+
         //Enable all gpios
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
                       | RCC_AHB1ENR_GPIOBEN
@@ -232,12 +232,12 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     imageWindow(p1, p2);
     sendCmd(0x2C, 0);       //ST7735_RAMWR, to enable write on GRAM
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
-    
+
     unsigned char msb = 0x00;
     unsigned char lsb = 0x00;
 
     //Send data to write on GRAM
-    for(int i=0; i < numPixels; i++) { 
+    for(int i=0; i < numPixels; i++) {
         dcx::high();
         csx::low();
         delayUs(1);
@@ -278,14 +278,14 @@ void DisplayImpl::line(Point a, Point b, Color color) {
     {
         imageWindow(Point(min(a.x(), b.x()), a.y()),
                     Point(max(a.x(), b.x()), a.y()));
-        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM            
+        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM
         int numPixels = abs(a.x() - b.x());
-        
+
         unsigned char msb = 0x00;
         unsigned char lsb = 0x00;
 
         //Send data to write on GRAM
-        for(int i=0; i < numPixels; i++) { 
+        for(int i=0; i < numPixels; i++) {
             dcx::high();
             csx::low();
             delayUs(1);
@@ -303,14 +303,14 @@ void DisplayImpl::line(Point a, Point b, Color color) {
     {
         textWindow(Point(a.x(), min(a.y(), b.y())),
                     Point(a.x(), max(a.y(), b.y())));
-        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM 
+        sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM
         int numPixels = abs(a.y() - b.y());
-        
+
         unsigned char msb = 0x00;
         unsigned char lsb = 0x00;
 
         //Send data to write on GRAM
-        for(int i=0; i < numPixels; i++) { 
+        for(int i=0; i < numPixels; i++) {
             dcx::high();
             csx::low();
             delayUs(1);
@@ -330,15 +330,15 @@ void DisplayImpl::line(Point a, Point b, Color color) {
 
 void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {
     imageWindow(p, Point(width - 1, p.y()));
-    sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM   
-    
+    sendCmd(0x2C);      //ST7735_RAMWR, to write in GRAM
+
     if(p.x() + length > width) { return; }
 
     unsigned char msb = 0x00;
     unsigned char lsb = 0x00;
 
     //Send data to write on GRAM
-    for(int i=0; i < length; i++) { 
+    for(int i=0; i < length; i++) {
         dcx::high();
         csx::low();
         delayUs(1);
@@ -366,7 +366,7 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
     short int yEnd = p.y() + img.getHeight() - 1;
     if(xEnd >= width || yEnd >= height) { return; }
 
-    const unsigned short *imgData = img.getData();  
+    const unsigned short *imgData = img.getData();
     if(imgData != 0)
     {
         //Optimized version for memory-loaded images
@@ -390,8 +390,8 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
             delayUs(1);
             imgData++;
         }
-    } 
-    else { img.draw(*this,p); }        
+    }
+    else { img.draw(*this,p); }
 }
 
 void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {
@@ -409,19 +409,19 @@ void DisplayImpl::update() {}
 
 DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
     Point p2, IteratorDirection d) {
-        if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) { 
-            return pixel_iterator(); 
+        if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) {
+            return pixel_iterator();
         }
         if(p1.x() >= width || p1.y() >= height || p2.x() >= width || p2.y() >= height) {
             return pixel_iterator();
         }
-        if(p2.x() < p1.x() || p2.y() < p1.y()) { 
+        if(p2.x() < p1.x() || p2.y() < p1.y()) {
             return pixel_iterator();
         }
-    
+
         if(d == DR) { textWindow(p1, p2); }
         else { imageWindow(p1, p2); }
-        
+
         sendCmd(0x2C);      //ST7735_RAMWR, write to GRAM
 
         unsigned int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
@@ -432,7 +432,7 @@ DisplayImpl::~DisplayImpl() {
     if(buffer) delete[] buffer;
 }
 
-DisplayImpl::DisplayImpl(): which(0) { 
+DisplayImpl::DisplayImpl(): which(0) {
     doTurnOn();
     setFont(droid11);
     setTextColor(make_pair(white, black));
@@ -458,16 +458,16 @@ void DisplayImpl::window(Point p1, Point p2) {
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
-    sendCmd(0x2A, sizeof(buff_caset), 
-        buff_caset[0], buff_caset[1], 
+    sendCmd(0x2A, sizeof(buff_caset),
+        buff_caset[0], buff_caset[1],
         buff_caset[2], buff_caset[3]);
-    
+
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
-    sendCmd(0x2B, sizeof(buff_raset), 
-        buff_raset[0], buff_raset[1], 
+    sendCmd(0x2B, sizeof(buff_raset),
+        buff_raset[0], buff_raset[1],
         buff_raset[2], buff_raset[3]);
 }
 

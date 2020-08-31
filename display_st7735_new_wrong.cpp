@@ -1,3 +1,20 @@
+
+/*
+
+
+    WRONG version
+    i'm actually sending the number of the parameters to the MCU
+    resulting in a black screen at some point
+
+
+
+
+
+
+*/
+
+
+
 #include "display_st7735.h"
 #include "miosix.h"
 #include <algorithm>
@@ -180,53 +197,63 @@ DisplayST7735::DisplayST7735()  {
     delayUs(100);
 
     //initialization sequence
+    /*
+
+
+        TOTALLY WRONG, I'M SENDING NUMBER OF PARAMETERS TO MCU BEFORE ACTUALLY SENDING THEM
+
+
+    */
     cmd(0x01);                                          // ST7735_SWRESET
     delayMs(150);
     cmd(0x11);                                          // ST7735_SLPOUT
     delayMs(255);
 
-    cmd(0x3A);  data(0x05);                             // ST7735_COLMOD, color mode: 16-bit/pixel
+    cmd(0x3A);  data(0x01); data(0x05);                 // ST7735_COLMOD, color mode: 16-bit/pixel
     delayMs(10);
 
-    cmd(0xB1);  data(0x00); data(0x06);                 // ST7735_FRMCTR1, normal mode frame rate
-                data(0x03);                             //maybe try with 0x2C, 0x2D
+    cmd(0xB1);  data(0x03); data(0x00); data(0x06);     // ST7735_FRMCTR1, normal mode frame rate
+                data(0x03);                             //maybe try with 0x01, 0x2C, 0x2D
     delayMs(10);
-    cmd(0x36);  data(0x08);                             // ST7735_MADCTL, row/col addr, bottom-top refresh
+    cmd(0x36);  data(0x01); data(0x08);                 // ST7735_MADCTL, row/col addr, bottom-top refresh
 
-    cmd(0xB6);  data(0x15); data(0x00);                 // ST7735_DISSET5, display settings (2nd param 0x00 or 0x02?)
-    cmd(0xB4);  data(0x00);                             // ST7735_INVCTR, line inversion active //TODO maybe 0x07 (no inverison)
-    cmd(0xC0);  data(0x02); data(0x70);                 // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+    //after the below line the screen becomes black
+    cmd(0xB6);  data(0x02); data(0x15); data(0x00);     // ST7735_DISSET5, display settings (2nd param 0x00 or 0x02?)
+    cmd(0xB4);  data(0x01); data(0x00);                 // ST7735_INVCTR, line inversion active //TODO maybe 0x07 (no inverison)
+    cmd(0xC0);  data(0x02); data(0x02); data(0x70);     // ST7735_PWCTR1, default (4.7V, 1.0 uA)
     delayMs(10);
-    cmd(0xC1);  data(0x05);                             // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    cmd(0xC2);  data(0x01); data(0x02);                 // ST7735_PWCTR3, opamp current small, boost frequency
-    cmd(0xC5);  data(0x3C); data(0x38);                 // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+    cmd(0xC1);  data(0x01); data(0x05);                 // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+    //after the below line the screen returns white
+    delayMs(1000);
+    cmd(0xC2);  data(0x02); data(0x01); data(0x02);     // ST7735_PWCTR3, opamp current small, boost frequency
+    cmd(0xC5);  data(0x02); data(0x3C); data(0x38);     // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
     delayMs(10);
-    cmd(0xFC);  data(0x11); data(0x15);                 // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
-    cmd(0xE0);  data(0x09); data(0x16);                 // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
+    cmd(0xFC);  data(0x02); data(0x11); data(0x15);     // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
+    cmd(0xE0);  data(0x10); data(0x09); data(0x16);     // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
                 data(0x09); data(0x20); data(0x21);
                 data(0x1B); data(0x13); data(0x19);
                 data(0x17); data(0x15); data(0x1E);
                 data(0x2B); data(0x04); data(0x05);
                 data(0x02); data(0x0E);
-    cmd(0xE1);  data(0x0B); data(0x14);                 // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
+    cmd(0xE1);  data(0x10); data(0x0B); data(0x14);     // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
                 data(0x08); data(0x1E); data(0x22);
                 data(0x1D); data(0x18); data(0x1E);
                 data(0x1B); data(0x1A); data(0x24);
                 data(0x2B); data(0x06); data(0x06);
                 data(0x02); data(0x0F);
     delayMs(10);
-    cmd(0x2A);  data(0x00); data(0x01);                 // ST7735_CASET, column address: x_start = 1, x_end = 127
+    cmd(0x2A);  data(0x04); data(0x00); data(0x01);     // ST7735_CASET, column address: x_start = 1, x_end = 127
                 data(0x00); data(0x7F);
-    cmd(0x2B);  data(0x00); data(0x01);                 // ST7735_RASET, row address: x_start = 1, x_end = 159
+    cmd(0x2B);  data(0x04); data(0x00); data(0x01);     // ST7735_RASET, row address: x_start = 1, x_end = 159
                 data(0x00); data(0x9F);
     cmd(0x13);                                          // ST7735_NORON, normal display mode on
     delayMs(10);
     //clear(0);
     //update();
-    cmd(0x28);                                          // ST7735_DISPON, display on
+    cmd(0x29);                                          // ST7735_DISPON, display on
     delayMs(255);
-    delayMs(1000);
     clear(RED);
+
 }
 
 DisplayST7735::~DisplayST7735()  {}
@@ -273,12 +300,14 @@ void DisplayST7735::clear(Point p1, Point p2, Color color) {
 }
 
 void DisplayST7735::textWindow(Point p1, Point p2) {
-    cmd(0x36);  data(0x20);
+    cmd(0x36);
+    data(0x20);
     window(p1, p2);
 }
 
 void DisplayST7735::imageWindow(Point p1, Point p2) {
-    cmd(0x36);  data(0x00);
+    cmd(0x36);
+    data(0x00);
     window(p1, p2);
 }
 
