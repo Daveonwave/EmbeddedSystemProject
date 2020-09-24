@@ -339,13 +339,13 @@ private:
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void textWindow(Point p1, Point p2){
+    static void textWindow(Point p1, Point p2);
         //TODO writeReg (0x36, 0x20);
         /*  reg 0x36 is MADCTL (memory data access control)
         *   value 0x20 is YXV=001 ML=0 RGB=0 MH=0  --> 00100000
         */
-        window(p1, p2);
-    }
+        //window(p1, p2);
+
 
     /**
      * Set a hardware window on the screen, optimized for drawing images.
@@ -354,13 +354,13 @@ private:
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void imageWindow(Point p1, Point p2){
+    static void imageWindow(Point p1, Point p2);
         //TODO writeReg (0x36, 0x00, 0x01);
         /*  reg 0x36 is MADCTL (memory data access control)
         *   value 0x0 is YXV=000 ML=0 RGB=0 MH=0  --> 00000000
         */
-        window(p1, p2);
-    }
+        //window(p1, p2);
+
 
     /**
      * Common part of all window commands
