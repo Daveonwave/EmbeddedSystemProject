@@ -41,11 +41,11 @@ namespace mxgui {
 #endif
 
 //Control interface
-typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOB_BASE, 6> csx; //free I/O pin
-typedef Gpio<GPIOC_BASE, 7> resx; //free I/O pin
-typedef Gpio<GPIOA_BASE, 9> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOB_BASE, 3> scl; //SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 5> sda; //SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 4> csx; //free I/O pin
+typedef Gpio<GPIOC_BASE, 6> resx; //free I/O pin
+typedef Gpio<GPIOA_BASE, 8> dcx; //free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 

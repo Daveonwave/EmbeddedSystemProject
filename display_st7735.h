@@ -40,11 +40,11 @@ namespace mxgui {
 #endif
 
 //Control interface
-typedef Gpio<GPIOA_BASE, 5> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOA_BASE, 7> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOB_BASE, 6> csx; //free I/O pin
-typedef Gpio<GPIOC_BASE, 7> resx; //free I/O pin
-typedef Gpio<GPIOA_BASE, 9> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOB_BASE, 3> scl; //SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 5> sda; //SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 4> csx; //free I/O pin
+typedef Gpio<GPIOC_BASE, 6> resx; //free I/O pin
+typedef Gpio<GPIOA_BASE, 8> dcx; //free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 
@@ -386,12 +386,13 @@ private:
         CommandTransaction c;
         writeRam(0x2C);     //ST7735_RAMWR, to write the GRAM
         //Change SPI interface to 16 bit mode, for faster pixel transfer
+        /*
         SPI1->CR1 = 0;
         SPI1->CR1 = SPI_CR1_SSM
                   | SPI_CR1_SSI
-                  | SPI_CR1_DFF 
                   | SPI_CR1_MSTR
                   | SPI_CR1_SPE;
+        */
     }
 
     /**
@@ -399,16 +400,16 @@ private:
      * The SPI chip select must be low before calling this member function
      * \param data data to write
      */
-    static unsigned short writeRam(unsigned short data)
+    static unsigned char writeRam(unsigned char data)
     {
         SPI1->DR = data;
-        while((SPI1->SR & SPI_SR_RXNE)==0) ;
+        while((SPI1->SR & SPI_SR_RXNE) == 0) ;
         return SPI1->DR; //Note: reading back SPI1->DR is necessary.
     }
 
     /**
      * Ends a pixel transfer to the display
-     */
+     
     static void writeRamEnd()
     {
         //Put SPI back into 8 bit mode
@@ -417,7 +418,7 @@ private:
                   | SPI_CR1_SSI
                   | SPI_CR1_MSTR
                   | SPI_CR1_SPE;
-    }
+    }*/
 
     /**
      * Write data to a display register

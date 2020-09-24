@@ -56,47 +56,7 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    //TODO: RCC configuration
-    {
-        FastInterruptDisableLock dLock;
-        
-        //Enable all gpios
-        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
-                      | RCC_AHB1ENR_GPIOBEN
-                      | RCC_AHB1ENR_GPIOCEN;
-
-
-        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM  //Software cs
-                  | SPI_CR1_SSI  //Hardware cs internally tied high
-                  | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
-                  | SPI_CR1_MSTR //Master mode
-                  | SPI_CR1_SPE;  //SPI enabled
-        //RCC something and stuff..
-        //Spi1en..
-    }
-
-    //TODO: while something (RCC->CR == 0)...
-
-    {
-        FastInterruptDisableLock dLock;
-
-        scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
-        sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
-        csx::mode(Mode::OUTPUT);
-        dcx::mode(Mode::OUTPUT);
-        resx::mode(Mode::OUTPUT);
-
-        //TODO: RCC something...
-    }
-
-    writeReg(0x01);    // ST7735_SWRESET
-    delayMs(150);
-    writeReg(0x11);    // ST7735_SLPOUT
-    delayMs(255);
-
-    sendCmds(initCmds);
+    writeReg(0x29);
 }
 
 void DisplayImpl::doTurnOff() {
@@ -125,17 +85,21 @@ void DisplayImpl::clear(Color color) {
 }
 
 void DisplayImpl::clear(Point p1, Point p2, Color color) {
+    unsigned char lsb = color & 0xFF;
+    unsigned char msb = (color >> 8) & 0xFF;
+    
     imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
     SPITransaction t;
     writeRamBegin();
     //Send data to write on GRAM
-    for(int i=0; i < numPixels; i++) { 
-        writeRam(color);
+    for(int i=0; i < numPixels; i++) {       
+        writeRam(lsb);
         delayUs(1);
+        writeRam(msb);  
+        delayUs(1);      
     }
-    writeRamEnd();
 }
 
 void DisplayImpl::beginPixel() {
@@ -143,14 +107,20 @@ void DisplayImpl::beginPixel() {
 }
 
 void DisplayImpl::setPixel(Point p, Color color) {
+    unsigned char lsb = color & 0xFF;
+    unsigned char msb = (color >> 8) & 0xFF;
+    
     setCursor(p);
     SPITransaction t;
     writeRamBegin();
-    writeRam(color);
-    writeRamEnd();
+    writeRam(lsb);
+    writeRam(msb);
 }
 
 void DisplayImpl::line(Point a, Point b, Color color) {
+    unsigned char lsb = color & 0xFF;
+    unsigned char msb = (color >> 8) & 0xFF;    
+    
     if(a.y() == b.y())
     {
         imageWindow(Point(min(a.x(), b.x()), a.y()),
@@ -161,10 +131,11 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         writeRamBegin(); 
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
-            writeRam(color);
+            writeRam(lsb);
+            delayUs(1);
+            writeRam(msb);
             delayUs(1);
         }
-        writeRamEnd();
         return;
     }
     //Vertical line speed optimization
@@ -178,10 +149,11 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         writeRamBegin();
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
-            writeRam(color);
+            writeRam(lsb);
+            delayUs(1);
+            writeRam(msb);
             delayUs(1);
         }
-        writeRamEnd();
         return;
     }
     //General case, always works but it is much slower due to the display
@@ -190,6 +162,9 @@ void DisplayImpl::line(Point a, Point b, Color color) {
 }
 
 void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {
+    unsigned char lsb = 0x00;
+    unsigned char msb = 0x00;
+    
     imageWindow(p, Point(width - 1, p.y()));  
     if(p.x() + length > width) { return; }
 
@@ -197,10 +172,14 @@ void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) 
     writeRamBegin();
     //Send data to write on GRAM
     for(int i=0; i < length; i++) { 
-        writeRam(colors[i]);
+        lsb = colors[i] & 0xFF;
+        msb = (colors[i] >> 8) & 0xFF;
+
+        writeRam(lsb);
+        delayUs(1);
+        writeRam(msb);
         delayUs(1);
     }
-    writeRamEnd();
 }
 
 //TODO: vedere se funziona questa implementazione
@@ -220,6 +199,9 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
     const unsigned short *imgData = img.getData();  
     if(imgData != 0)
     {
+        unsigned char lsb = 0x00;
+        unsigned char msb = 0x00;
+
         //Optimized version for memory-loaded images
         imageWindow(p, Point(xEnd, yEnd));
         int numPixels = img.getHeight() * img.getWidth();
@@ -228,10 +210,13 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
         writeRamBegin();
         for(int i=0; i <= numPixels; i++)
         {
-            writeRam(imgData[i]);
+            lsb = imgData[i] & 0xFF;
+            msb = (imgData[i] >> 8) & 0xFF;
+            writeRam(lsb);
+            delayUs(1);
+            writeRam(msb);
             delayUs(1);
         }
-        writeRamEnd();
     } 
     else { img.draw(*this,p); }        
 }
@@ -276,6 +261,37 @@ DisplayImpl::~DisplayImpl() {}
 
 //Constructor
 DisplayImpl::DisplayImpl(): which(0) { 
+    //TODO: RCC configuration
+    {
+        FastInterruptDisableLock dLock;
+
+        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+        SPI1->CR1 = 0;
+        SPI1->CR1 = SPI_CR1_SSM  //Software cs
+                  | SPI_CR1_SSI  //Hardware cs internally tied high
+                  | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
+                  | SPI_CR1_MSTR //Master mode
+                  | SPI_CR1_SPE;  //SPI enabled
+        //RCC something and stuff..
+        //Spi1en..
+    
+        scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
+        sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
+        csx::mode(Mode::OUTPUT);
+        dcx::mode(Mode::OUTPUT);
+        resx::mode(Mode::OUTPUT);
+
+        //TODO: RCC something...
+    }
+
+    writeReg(0x01);    // ST7735_SWRESET
+    delayMs(150);
+    writeReg(0x11);    // ST7735_SLPOUT
+    delayMs(255);
+
+    sendCmds(initCmds);
+    
+    
     doTurnOn();
     setFont(droid11);
     setTextColor(make_pair(white, black));
@@ -285,14 +301,14 @@ DisplayImpl::DisplayImpl(): which(0) {
 void DisplayImpl::window(Point p1, Point p2) {
     //Setting column bounds, ST7735_CASET
     unsigned char buff_caset[4];
-    buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
-    buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
+    buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
+    buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
     writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
-    buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
-    buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
+    buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
+    buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
     writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 
@@ -320,7 +336,7 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
         writeRam(reg);
     }
     if(data) {
-        for(int i=0;i<len;i++) { 
+        for(int i=0; i<len; i++) { 
             writeRam(*data++); 
             delayUs(1);
         }
