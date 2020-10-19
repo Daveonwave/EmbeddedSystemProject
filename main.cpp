@@ -16,8 +16,8 @@ int main()
     for(;;)
     {
         ledOn();
-        Thread::sleep(500);
+        Thread::sleep(1500);
         ledOff();
-        Thread::sleep(500);
+        Thread::sleep(1500);
     }
 }

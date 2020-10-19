@@ -8,6 +8,15 @@ using namespace miosix;
 #ifdef _BOARD_STM32F4DISCOVERY
 
 namespace mxgui {
+
+/*
+* printf debugging function
+*/
+int __io_putchar(int ch){
+     ITM_SendChar(ch);
+     return(ch);
+}
+
 /**
  * Function to attach the display we are using.
  */
@@ -18,14 +27,20 @@ void registerDisplayHook(DisplayManager& dm) {
 const unsigned char initCmds[] = {
         0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
         0xB1, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR1, normal mode frame rate
-        0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
+        0xB2, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR2, idle mode frame rate
         0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
         0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
-        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-        0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
-        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+        //0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+        0xC0, 0x03, 0xA2, 0x02, 0x84,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+        //0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        0xC1, 0x01, 0xC5,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        //0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
+        0xC2, 0x02, 0x0A, 0x00,             // ST7735_PWCTR3, opamp current small, boost frequency
+        0xC3, 0x02, 0x8A, 0x2A,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
+        //0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+        0xC5, 0x01, 0x0E,                   // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
         0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
+        0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
         0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
             0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
             0x21, 0x1B, 0x13, 0x19,         // accurate colors)
@@ -43,7 +58,7 @@ const unsigned char initCmds[] = {
             0x00, 0x00,                     // x_start = 0
             0x00, 0x9F,                     // x_end = 159
         0x13,                               // ST7735_NORON, normal display mode on
-        0x29,                               // ST7735_DISPON, display on                               // ST7735_RAMWR, write on GRAM
+//        0x29,                               // ST7735_DISPON, display on                               // ST7735_RAMWR, write on GRAM
         0x00                                //END 
     };
 
@@ -95,9 +110,9 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     writeRamBegin();
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
-        writeRam(lsb);
+        writeRam(msb);
         delayUs(1);
-        writeRam(msb);  
+        writeRam(lsb);  
         delayUs(1);      
     }
 }
@@ -113,8 +128,8 @@ void DisplayImpl::setPixel(Point p, Color color) {
     setCursor(p);
     SPITransaction t;
     writeRamBegin();
-    writeRam(lsb);
     writeRam(msb);
+    writeRam(lsb);
 }
 
 void DisplayImpl::line(Point a, Point b, Color color) {
@@ -131,9 +146,9 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         writeRamBegin(); 
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
-            writeRam(lsb);
-            delayUs(1);
             writeRam(msb);
+            delayUs(1);
+            writeRam(lsb);
             delayUs(1);
         }
         return;
@@ -149,9 +164,9 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         writeRamBegin();
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
-            writeRam(lsb);
-            delayUs(1);
             writeRam(msb);
+            delayUs(1);
+            writeRam(lsb);
             delayUs(1);
         }
         return;
@@ -175,9 +190,9 @@ void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) 
         lsb = colors[i] & 0xFF;
         msb = (colors[i] >> 8) & 0xFF;
 
-        writeRam(lsb);
-        delayUs(1);
         writeRam(msb);
+        delayUs(1);
+        writeRam(lsb);
         delayUs(1);
     }
 }
@@ -212,9 +227,9 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
         {
             lsb = imgData[i] & 0xFF;
             msb = (imgData[i] >> 8) & 0xFF;
-            writeRam(lsb);
-            delayUs(1);
             writeRam(msb);
+            delayUs(1);
+            writeRam(lsb);
             delayUs(1);
         }
     } 
@@ -280,17 +295,22 @@ DisplayImpl::DisplayImpl(): which(0) {
         csx::mode(Mode::OUTPUT);
         dcx::mode(Mode::OUTPUT);
         resx::mode(Mode::OUTPUT);
-
-        //TODO: RCC something...
     }
+
+    __io_putchar('B');
+    __io_putchar('\n');
+
 
     writeReg(0x01);    // ST7735_SWRESET
     delayMs(150);
     writeReg(0x11);    // ST7735_SLPOUT
     delayMs(255);
 
+    __io_putchar('A');
+    __io_putchar('\n');
+
+
     sendCmds(initCmds);
-    
     
     doTurnOn();
     setFont(droid11);
@@ -336,8 +356,8 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
         writeRam(reg);
     }
     if(data) {
-        for(int i=0; i<len; i++) { 
-            writeRam(*data++); 
+        for(int i = 0; i < len; i++) { 
+            writeRam(*(data)++); 
             delayUs(1);
         }
     }
@@ -349,11 +369,11 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
 void DisplayImpl::sendCmds(const unsigned char *cmds) {
     while(*cmds)
     {
-        unsigned char cmd = *cmds++;
-        unsigned char numArgs = *cmds++;
+        unsigned char cmd = *(cmds)++;
+        unsigned char numArgs = *(cmds)++;
         writeReg(cmd, cmds, numArgs);
         cmds += numArgs;
-        delayMs(1);
+        delayMs(100);
     }
 }
 
