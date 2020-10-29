@@ -31,77 +31,6 @@ void registerDisplayHook(DisplayManager& dm) {
     dm.registerDisplay(&DisplayImpl::instance());
 }
 
-const unsigned char initCmds[] = {
-    0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
-    0xB1, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR1, normal mode frame rate
-    0xB2, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR2, idle mode frame rate
-    0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
-    0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
-    //0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-    0xC0, 0x03, 0xA2, 0x02, 0x84,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-    //0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    0xC1, 0x01, 0xC5,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    //0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
-    0xC2, 0x02, 0x0A, 0x00,             // ST7735_PWCTR3, opamp current small, boost frequency
-    0xC3, 0x02, 0x8A, 0x2A,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
-    //0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
-    0xC5, 0x01, 0x0E,                   // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
-    0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
-    0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
-    0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
-        0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
-        0x21, 0x1B, 0x13, 0x19,         // accurate colors)
-        0x17, 0x15, 0x1E, 0x2B,
-        0x04, 0x05, 0x02, 0x0E,
-    0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
-        0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
-        0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
-        0x1B, 0x1A, 0x24, 0x2B,
-        0x06, 0x06, 0x02, 0x0F,
-    0x2A, 0x04,                         // ST7735_CASET, column address
-        0x00, 0x00,                     // x_start = 0
-        0x00, 0x7F,                     // x_end = 127
-    0x2B, 0x04,                         // ST7735_RASET, row address
-        0x00, 0x00,                     // x_start = 0
-        0x00, 0x9F,                     // x_end = 159
-    0x13,                               // ST7735_NORON, normal display mode on
-//        0x29,                               // ST7735_DISPON, display on                               // ST7735_RAMWR, write on GRAM
-//    0x00                                //END 
-};
-
-
-const unsigned char initST7735b[] = {
-    0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
-    0xB1, 0x03, 0x00, 0x06, 0x03,       // ST7735_FRMCTR1, normal mode frame rate
-    0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
-    0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
-    0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
-    0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-    0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
-    0xC3, 0x02, 0x8A, 0x2A,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
-    0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
-    0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle)
-    0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
-        0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
-        0x21, 0x1B, 0x13, 0x19,         // accurate colors)
-        0x17, 0x15, 0x1E, 0x2B,
-        0x04, 0x05, 0x02, 0x0E,
-    0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
-        0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
-        0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
-        0x1B, 0x1A, 0x24, 0x2B,
-        0x06, 0x06, 0x02, 0x0F,
-    0x2A, 0x04,                         // ST7735_CASET, column address
-        0x00, 0x02,                     // x_start = 0
-        0x00, 0x81,                     // x_end = 127
-    0x2B, 0x04,                         // ST7735_RASET, row address
-        0x00, 0x02,                     // x_start = 0
-        0x00, 0x81,                     // x_end = 159
-    0x13,                               // ST7735_NORON, normal display mode on
-    0x00
-};
-
 /**
  * Class DisplayImpl
  */
@@ -111,11 +40,11 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    writeReg(0x29);
+    writeCmd(0x29);
 }
 
 void DisplayImpl::doTurnOff() {
-    writeReg(0x28);     //ST7735_DISPOFF TODO: should be followed by SLPIN
+    writeCmd(0x28);     //ST7735_DISPOFF TODO: should be followed by SLPIN
     delayMs(150);
 }
 
@@ -146,18 +75,11 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
-    {
-        SPITransaction t;
-        writeRamBegin();
-    }
-    
-    SPITransaction t;
+    writeCmd(0x2C);     //RAMWR, to write the GRAM   
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
-        writeRam(msb);
-        delayUs(1);
-        writeRam(lsb);  
-        delayUs(1);      
+        writeData(msb);
+        writeData(lsb);        
     }
 }
 
@@ -171,7 +93,7 @@ void DisplayImpl::setPixel(Point p, Color color) {
     
     setCursor(p);
     SPITransaction t;
-    writeRamBegin();
+    //writeRamBegin();
     writeRam(msb);
     writeRam(lsb);
 }
@@ -187,7 +109,7 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         int numPixels = abs(a.x() - b.x());
 
         SPITransaction t;
-        writeRamBegin(); 
+        //writeRamBegin(); 
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
             writeRam(msb);
@@ -205,7 +127,7 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         int numPixels = abs(a.y() - b.y());
         
         SPITransaction t;
-        writeRamBegin();
+        //writeRamBegin();
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
             writeRam(msb);
@@ -228,7 +150,7 @@ void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) 
     if(p.x() + length > width) { return; }
 
     SPITransaction t;
-    writeRamBegin();
+    //writeRamBegin();
     //Send data to write on GRAM
     for(int i=0; i < length; i++) { 
         lsb = colors[i] & 0xFF;
@@ -266,7 +188,7 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
         int numPixels = img.getHeight() * img.getWidth();
 
         SPITransaction t;
-        writeRamBegin();
+        //writeRamBegin();
         for(int i=0; i <= numPixels; i++)
         {
             lsb = imgData[i] & 0xFF;
@@ -309,7 +231,7 @@ DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
         else { imageWindow(p1, p2); }
         
         SPITransaction t;
-        writeRamBegin();
+        //writeRamBegin();
 
         unsigned int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
         return pixel_iterator(numPixels);
@@ -348,96 +270,81 @@ DisplayImpl::DisplayImpl(): which(0) {
     csx::high();
     dcx::high();
 
-    //_print(0, "pre_reset", 9);
-
-    writeReg(0x01);    // ST7735_SWRESET
-    delayMs(150);
-    writeReg(0x11);    // ST7735_SLPOUT
-    delayMs(255);
-
-    //_print(0, "post_reset", 10);
-
-    const unsigned char *cmds = initST7735b; 
-    while(*cmds)
-    {
-        unsigned char cmd = *cmds++;
-        unsigned char numArgs = *cmds++;
-        writeReg(cmd, cmds, numArgs);
-        cmds += numArgs;
-        delayMs(10);
-    }
-
-    //sendCmds(initST7735b);
+    sendInitSeq();
     
     doTurnOn();
     setFont(droid11);
     setTextColor(make_pair(white, black));
 }
 
-
 void DisplayImpl::window(Point p1, Point p2) {
     //Setting column bounds, ST7735_CASET
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
-    writeReg(0x2A, buff_caset, sizeof(buff_caset));
+    //writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
-    writeReg(0x2B, buff_raset, sizeof(buff_raset));
+    //writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 
-/**
- * Write only commands with one parameter.
- */
-void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
-{
-    {
-        SPITransaction t;
-        CommandTransaction c;
-        writeRam(reg);
-    }
-    {   
-        SPITransaction t;
-        writeRam(data);
-    }
+void DisplayImpl::sendInitSeq() {
     
-}
+    //SWRESET
+    writeCmd(0x01);
+    delayMs(150);
+    //SLPOUT
+    writeCmd(0x11);
+    delayMs(255);
 
-/**
- * Write commands with more parameters.
- */
-void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
-{
-    {
-        SPITransaction t;
-        CommandTransaction c;
-        writeRam(reg);
-    }
-    if(data) 
-    {
-        for(int i = 0; i < len; i++) {
-            SPITransaction t;
-            writeRam(*data++); 
-            delayUs(1);
-        }
-    }
-}
+    //COLMOD, color mode: 16-bit/pixel
+    writeCmd(0x3A);     writeData(0x05);
+    //FRMCTR1, normal mode frame rate
+    writeCmd(0xB1);     writeData(0x00); writeData(0x06); writeData(0x03);
+    //MADCTL, row/col addr, bottom-top refresh
+    writeCmd(0x36);     writeData(0x08);
+    //DISSET5, display settings
+    writeCmd(0xB6);     writeData(0x15); writeData(0x02);
+    //INVCTR, line inversion active
+    writeCmd(0xB4);     writeData(0x00);
+    //PWCTR1, default (4.7V, 1.0 uA)
+    writeCmd(0xC0);     writeData(0x02); writeData(0x70);
+    //PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+    writeCmd(0xC1);     writeData(0x05);
+    //PWCTR3, opamp current small, boost frequency
+    writeCmd(0xC2);     writeData(0x01); writeData(0x02);
+    //PWCTR4, bclk/2, opamp current small and medium low
+    writeCmd(0xC3);     writeData(0x8A); writeData(0x2A);
+    //VMCTR1, VCOMH=4V VCOML=-1.1
+    writeCmd(0xC5);     writeData(0x3C); writeData(0x38);
+    //PWCTR6, power control (partial mode+idle)
+    writeCmd(0xFC);     writeData(0x11); writeData(0x15);
 
-/**
- * Send commands of 8 bits to the MCU of the display.
- */
-void DisplayImpl::sendCmds(const unsigned char *cmds) {
-    while(*cmds)
-    {
-        unsigned char cmd = *cmds++;
-        unsigned char numArgs = *cmds++;
-        writeReg(cmd, cmds, numArgs);
-        cmds += numArgs;
-        delayMs(10);
-    }
+    //GMCTRP1, Gamma adjustments (pos. polarity)
+    writeCmd(0xE0);     writeData(0x09); writeData(0x16); writeData(0x09); writeData(0x20);
+                        writeData(0x21); writeData(0x1B); writeData(0x13); writeData(0x19);
+                        writeData(0x17); writeData(0x15); writeData(0x1E); writeData(0x2B);
+                        writeData(0x04); writeData(0x05); writeData(0x02); writeData(0x0E);
+    //GMCTRN1, Gamma adjustments (neg. polarity)
+    writeCmd(0xE1);     writeData(0x0B); writeData(0x14); writeData(0x08); writeData(0x1E);
+                        writeData(0x22); writeData(0x1D); writeData(0x18); writeData(0x1E);
+                        writeData(0x1B); writeData(0x1A); writeData(0x24); writeData(0x2B);
+                        writeData(0x06); writeData(0x06); writeData(0x02); writeData(0x0F);
+    
+    //CASET, column address
+    writeCmd(0x2A);     writeData(0x00); writeData(0x00);   //x_start = 0
+                        writeData(0x00); writeData(0x7F);   //x_end = 127
+    //RASET, row address
+    writeCmd(0x2B);     writeData(0x00); writeData(0x00);   //x_start = 0
+                        writeData(0x00); writeData(0x9F);   //x_end = 159
+    
+    //NORON, normal display mode on
+    writeCmd(0x13);
+    //NOP
+    writeCmd(0x00);
 }
 
 } //mxgui

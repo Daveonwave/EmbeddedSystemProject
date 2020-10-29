@@ -355,7 +355,8 @@ private:
      */
     static inline void textWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0x20);
+        writeCmd(0x36);
+        writeData(0x20);
         window(p1, p2);
     }
 
@@ -368,7 +369,8 @@ private:
      */
     static inline void imageWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0x08); 
+        writeCmd(0x36);
+        writeData(0x08); 
         window(p1, p2);
     }
 
@@ -376,24 +378,6 @@ private:
      * Common part of all window commands
      */
     static void window(Point p1, Point p2);
-
-    /**
-     * Sends command 0x2c which is the one to start sending pixels.
-     * Also, change SPI interface to 16 bit mode
-     */
-    static void writeRamBegin()
-    {
-        CommandTransaction c;
-        writeRam(0x2C);     //ST7735_RAMWR, to write the GRAM
-        //Change SPI interface to 16 bit mode, for faster pixel transfer
-        /*
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
-                  | SPI_CR1_SSI
-                  | SPI_CR1_MSTR
-                  | SPI_CR1_SPE;
-        */
-    }
 
     /**
      * Used to send pixel data to the display's RAM, and also to send commands.
@@ -408,38 +392,32 @@ private:
     }
 
     /**
-     * Ends a pixel transfer to the display
-     
-    static void writeRamEnd()
+     * Write data to a display register
+     * \param cmd which command
+     */
+    static void writeCmd(unsigned char cmd)
     {
-        //Put SPI back into 8 bit mode
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
-                  | SPI_CR1_SSI
-                  | SPI_CR1_MSTR
-                  | SPI_CR1_SPE;
-    }*/
+        SPITransaction t;
+        CommandTransaction c;
+        writeRam(cmd);
+        delayMs(10);
+    }
 
     /**
      * Write data to a display register
-     * \param reg which register?
      * \param data data to write
      */
-    static void writeReg(unsigned char reg, unsigned char data);
+    static void writeData(unsigned char data)
+    {
+        SPITransaction t;
+        writeRam(data);
+        delayMs(10);
+    } 
 
     /**
-     * Write data to a display register
-     * \param reg which register?
-     * \param data data to write, if null only reg will be written (zero arg cmd)
-     * \param len length of data, number of argument bytes
+     * Send initialization sequence
      */
-    static void writeReg(unsigned char reg, const unsigned char *data=0, int len=1);
-
-    /**
-     * Send multiple commands to the display MCU (we use to send init sequence)
-     * \param cmds static array containing the commands
-     */
-    static void sendCmds(const unsigned char *cmds);
+    void sendInitSeq();
 
     Color *buffer; ///< For scanLineBuffer
     Color buffers[2][128]; ///< Line buffers for scanline overlapped I/O
