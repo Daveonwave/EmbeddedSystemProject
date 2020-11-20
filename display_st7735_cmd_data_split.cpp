@@ -40,10 +40,12 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
+    SPITransaction t;
     writeCmd(0x29);
 }
 
 void DisplayImpl::doTurnOff() {
+    SPITransaction t;
     writeCmd(0x28);     //ST7735_DISPOFF TODO: should be followed by SLPIN
     delayMs(150);
 }
@@ -75,6 +77,7 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
+    SPITransaction t;
     writeCmd(0x2C);     //RAMWR, to write the GRAM   
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
@@ -273,8 +276,8 @@ DisplayImpl::DisplayImpl(): which(0) {
     sendInitSeq();
     
     doTurnOn();
-    //setFont(droid11);
-    //setTextColor(make_pair(white, black));
+    setFont(droid11);
+    setTextColor(make_pair(white, black));
 }
 
 void DisplayImpl::window(Point p1, Point p2) {
@@ -282,79 +285,164 @@ void DisplayImpl::window(Point p1, Point p2) {
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
-    writeCmd(0x2A);
-    writeData(buff_caset[0]);
-    writeData(buff_caset[1]);
-    writeData(buff_caset[2]);
-    writeData(buff_caset[3]);
+    
+    {
+        SPITransaction t;
+        writeCmd(0x2A);
+        writeData(buff_caset[0]);
+        writeData(buff_caset[1]);
+        writeData(buff_caset[2]);
+        writeData(buff_caset[3]);
+    }
+    
     //writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
-    writeCmd(0x2B);
-    writeData(buff_caset[0]);
-    writeData(buff_caset[1]);
-    writeData(buff_caset[2]);
-    writeData(buff_caset[3]);
+    
+    {
+        SPITransaction t;
+        writeCmd(0x2B);
+        writeData(buff_caset[0]);
+        writeData(buff_caset[1]);
+        writeData(buff_caset[2]);
+        writeData(buff_caset[3]);
+    }
+    
     //writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 
 void DisplayImpl::sendInitSeq() {
     
     //SWRESET
-    writeCmd(0x01);
+    {
+        SPITransaction t;
+        writeCmd(0x01);
+    }
     delayMs(150);
+    
     //SLPOUT
-    writeCmd(0x11);
+    {
+        SPITransaction t;
+        writeCmd(0x11);
+    }
     delayMs(255);
 
     //COLMOD, color mode: 16-bit/pixel
-    writeCmd(0x3A);     writeData(0x05);
+    {
+        SPITransaction t;
+        writeCmd(0x3A);     writeData(0x05);
+    }
+    
     //FRMCTR1, normal mode frame rate
-    writeCmd(0xB1);     writeData(0x00); writeData(0x06); writeData(0x03);
+    {
+        SPITransaction t;
+        writeCmd(0xB1);     writeData(0x00); writeData(0x06); writeData(0x03);
+    }
+    
     //MADCTL, row/col addr, bottom-top refresh
-    writeCmd(0x36);     writeData(0x08);
+    {
+        SPITransaction t;
+        writeCmd(0x36);     writeData(0x08);
+    }
+    
     //DISSET5, display settings
-    writeCmd(0xB6);     writeData(0x15); writeData(0x02);
+    {
+        SPITransaction t;
+        writeCmd(0xB6);     writeData(0x15); writeData(0x02);
+    }
+    
     //INVCTR, line inversion active
-    writeCmd(0xB4);     writeData(0x00);
+    {
+        SPITransaction t;
+        writeCmd(0xB4);     writeData(0x00);
+    }
+    
     //PWCTR1, default (4.7V, 1.0 uA)
-    writeCmd(0xC0);     writeData(0x02); writeData(0x70);
+    {
+        SPITransaction t;
+        writeCmd(0xC0);     writeData(0x02); writeData(0x70);
+    }
+    
     //PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    writeCmd(0xC1);     writeData(0x05);
+    {
+        SPITransaction t;
+        writeCmd(0xC1);     writeData(0x05);
+    }
+    
     //PWCTR3, opamp current small, boost frequency
-    writeCmd(0xC2);     writeData(0x01); writeData(0x02);
+    {
+        SPITransaction t;
+        writeCmd(0xC2);     writeData(0x01); writeData(0x02);
+    }
+    
     //PWCTR4, bclk/2, opamp current small and medium low
-    writeCmd(0xC3);     writeData(0x8A); writeData(0x2A);
+    {
+        SPITransaction t;
+        writeCmd(0xC3);     writeData(0x8A); writeData(0x2A);
+    }
+    
     //VMCTR1, VCOMH=4V VCOML=-1.1
-    writeCmd(0xC5);     writeData(0x3C); writeData(0x38);
+    {
+        SPITransaction t;
+        writeCmd(0xC5);     writeData(0x3C); writeData(0x38);
+    }
+    
     //PWCTR6, power control (partial mode+idle)
-    writeCmd(0xFC);     writeData(0x11); writeData(0x15);
+    {
+        SPITransaction t;
+        writeCmd(0xFC);     writeData(0x11); writeData(0x15);
+    }
+    
 
     //GMCTRP1, Gamma adjustments (pos. polarity)
-    writeCmd(0xE0);     writeData(0x09); writeData(0x16); writeData(0x09); writeData(0x20);
-                        writeData(0x21); writeData(0x1B); writeData(0x13); writeData(0x19);
-                        writeData(0x17); writeData(0x15); writeData(0x1E); writeData(0x2B);
-                        writeData(0x04); writeData(0x05); writeData(0x02); writeData(0x0E);
+    {
+        SPITransaction t;
+        writeCmd(0xE0);     writeData(0x09); writeData(0x16); writeData(0x09); writeData(0x20);
+                            writeData(0x21); writeData(0x1B); writeData(0x13); writeData(0x19);
+                            writeData(0x17); writeData(0x15); writeData(0x1E); writeData(0x2B);
+                            writeData(0x04); writeData(0x05); writeData(0x02); writeData(0x0E);
+    }
+    
     //GMCTRN1, Gamma adjustments (neg. polarity)
-    writeCmd(0xE1);     writeData(0x0B); writeData(0x14); writeData(0x08); writeData(0x1E);
-                        writeData(0x22); writeData(0x1D); writeData(0x18); writeData(0x1E);
-                        writeData(0x1B); writeData(0x1A); writeData(0x24); writeData(0x2B);
-                        writeData(0x06); writeData(0x06); writeData(0x02); writeData(0x0F);
+    {
+        SPITransaction t;
+        writeCmd(0xE1);     writeData(0x0B); writeData(0x14); writeData(0x08); writeData(0x1E);
+                            writeData(0x22); writeData(0x1D); writeData(0x18); writeData(0x1E);
+                            writeData(0x1B); writeData(0x1A); writeData(0x24); writeData(0x2B);
+                            writeData(0x06); writeData(0x06); writeData(0x02); writeData(0x0F);
+    }
+    
     
     //CASET, column address
-    writeCmd(0x2A);     writeData(0x00); writeData(0x00);   //x_start = 0
-                        writeData(0x00); writeData(0x7F);   //x_end = 127
+    {
+        SPITransaction t;
+        writeCmd(0x2A);     writeData(0x00); writeData(0x00);   //x_start = 0
+                            writeData(0x00); writeData(0x7F);   //x_end = 127
+    }
+    
     //RASET, row address
-    writeCmd(0x2B);     writeData(0x00); writeData(0x00);   //x_start = 0
-                        writeData(0x00); writeData(0x9F);   //x_end = 159
+    {
+        SPITransaction t;
+        writeCmd(0x2B);     writeData(0x00); writeData(0x00);   //x_start = 0
+                            writeData(0x00); writeData(0x9F);   //x_end = 159
+    }
+    
     
     //NORON, normal display mode on
-    writeCmd(0x13);
+    {
+        SPITransaction t;
+        writeCmd(0x13);
+    }
+    
     //NOP
-    writeCmd(0x00);
+    {
+        SPITransaction t;
+        writeCmd(0x00);
+    }
+    
 }
 
 } //mxgui

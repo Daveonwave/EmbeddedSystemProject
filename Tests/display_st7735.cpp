@@ -146,12 +146,8 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
-    {
-        SPITransaction t;
-        writeRamBegin();
-    }
-    
     SPITransaction t;
+    writeRamBegin();
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
         writeRam(msb);
@@ -364,14 +360,14 @@ DisplayImpl::DisplayImpl(): which(0) {
         unsigned char numArgs = *cmds++;
         writeReg(cmd, cmds, numArgs);
         cmds += numArgs;
-        delayMs(10);
+        delayUs(10);
     }
 
     //sendCmds(initST7735b);
     
     doTurnOn();
-    //setFont(droid11);
-    //setTextColor(make_pair(white, black));
+    setFont(droid11);
+    setTextColor(make_pair(white, black));
 }
 
 

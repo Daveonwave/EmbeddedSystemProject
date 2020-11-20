@@ -398,7 +398,6 @@ private:
     static void writeCmd(unsigned char cmd)
     {
         {
-            SPITransaction t;
             CommandTransaction c;
             writeRam(cmd);
         }
@@ -411,10 +410,7 @@ private:
      */
     static void writeData(unsigned char data)
     {
-        {
-            SPITransaction t;
-            writeRam(data);
-        }
+        writeRam(data);
         delayUs(10);
     } 
 
