@@ -324,9 +324,9 @@ DisplayImpl::DisplayImpl(): which(0) {
     {
         FastInterruptDisableLock dLock;
 
-        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM  //Software cs
+        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
+        SPI2->CR1 = 0;
+        SPI2->CR1 = SPI_CR1_SSM  //Software cs
                   | SPI_CR1_SSI  //Hardware cs internally tied high
                   | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
                   | SPI_CR1_MSTR //Master mode
@@ -339,14 +339,14 @@ DisplayImpl::DisplayImpl(): which(0) {
         resx::mode(Mode::OUTPUT);
     }
 
+    csx::high();
+    dcx::high();
+
     resx::high();
     Thread::sleep(250);
     resx::low();
     Thread::sleep(250);
     resx::high();
-
-    csx::high();
-    dcx::high();
 
     //_print(0, "pre_reset", 9);
 
@@ -370,8 +370,8 @@ DisplayImpl::DisplayImpl(): which(0) {
     //sendCmds(initST7735b);
     
     doTurnOn();
-    setFont(droid11);
-    setTextColor(make_pair(white, black));
+    //setFont(droid11);
+    //setTextColor(make_pair(white, black));
 }
 
 
@@ -394,16 +394,12 @@ void DisplayImpl::window(Point p1, Point p2) {
  */
 void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
 {
+    SPITransaction t;
     {
-        SPITransaction t;
         CommandTransaction c;
-        writeRam(reg);
+        writeRam(reg);  
     }
-    {   
-        SPITransaction t;
-        writeRam(data);
-    }
-    
+    writeRam(data);
 }
 
 /**
@@ -411,17 +407,16 @@ void DisplayImpl::writeReg(unsigned char reg, unsigned char data)
  */
 void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len)
 {
+     SPITransaction t;
     {
-        SPITransaction t;
         CommandTransaction c;
         writeRam(reg);
     }
     if(data) 
     {
         for(int i = 0; i < len; i++) {
-            SPITransaction t;
             writeRam(*data++); 
-            delayUs(1);
+            //delayUs(1);
         }
     }
 }
@@ -436,7 +431,7 @@ void DisplayImpl::sendCmds(const unsigned char *cmds) {
         unsigned char numArgs = *cmds++;
         writeReg(cmd, cmds, numArgs);
         cmds += numArgs;
-        delayMs(10);
+        delayUs(10);
     }
 }
 

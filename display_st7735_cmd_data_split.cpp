@@ -246,9 +246,9 @@ DisplayImpl::DisplayImpl(): which(0) {
     {
         FastInterruptDisableLock dLock;
 
-        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM  //Software cs
+        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
+        SPI2->CR1 = 0;
+        SPI2->CR1 = SPI_CR1_SSM  //Software cs
                   | SPI_CR1_SSI  //Hardware cs internally tied high
                   | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
                   | SPI_CR1_MSTR //Master mode
@@ -261,20 +261,20 @@ DisplayImpl::DisplayImpl(): which(0) {
         resx::mode(Mode::OUTPUT);
     }
 
+    csx::high();
+    dcx::high();
+
     resx::high();
     Thread::sleep(250);
     resx::low();
     Thread::sleep(250);
     resx::high();
 
-    csx::high();
-    dcx::high();
-
     sendInitSeq();
     
     doTurnOn();
-    setFont(droid11);
-    setTextColor(make_pair(white, black));
+    //setFont(droid11);
+    //setTextColor(make_pair(white, black));
 }
 
 void DisplayImpl::window(Point p1, Point p2) {
@@ -282,12 +282,22 @@ void DisplayImpl::window(Point p1, Point p2) {
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
+    writeCmd(0x2A);
+    writeData(buff_caset[0]);
+    writeData(buff_caset[1]);
+    writeData(buff_caset[2]);
+    writeData(buff_caset[3]);
     //writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
+    writeCmd(0x2B);
+    writeData(buff_caset[0]);
+    writeData(buff_caset[1]);
+    writeData(buff_caset[2]);
+    writeData(buff_caset[3]);
     //writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 

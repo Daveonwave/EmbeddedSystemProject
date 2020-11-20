@@ -40,8 +40,8 @@ namespace mxgui {
 #endif
 
 //Control interface
-typedef Gpio<GPIOB_BASE, 3> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOB_BASE, 5> sda; //SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 13> scl; //SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 15> sda; //SPI1_MOSI (af5)
 typedef Gpio<GPIOB_BASE, 4> csx; //free I/O pin
 typedef Gpio<GPIOC_BASE, 6> resx; //free I/O pin
 typedef Gpio<GPIOA_BASE, 8> dcx; //free I/O pin, used only in 4-line SPI
@@ -402,9 +402,9 @@ private:
      */
     static unsigned char writeRam(unsigned char data)
     {
-        SPI1->DR = data;
-        while((SPI1->SR & SPI_SR_RXNE) == 0) ;
-        return SPI1->DR; //Note: reading back SPI1->DR is necessary.
+        SPI2->DR = data;
+        while((SPI2->SR & SPI_SR_RXNE) == 0) ;
+        return SPI2->DR; //Note: reading back SPI1->DR is necessary.
     }
 
     /**
