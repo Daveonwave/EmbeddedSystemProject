@@ -11,13 +11,30 @@ using namespace mxgui;
 
 int main()
 {
-    DrawingContext dc(DisplayManager::instance().getDisplay());
-    dc.clear(red);
-    for(;;)
+    //using led = Gpio<GPIOB_BASE, 3>;	
+    //led::mode(Mode::OUTPUT);
+	
+
+    Display& display = DisplayManager::instance().getDisplay();
+    
     {
-        ledOn();
-        Thread::sleep(1500);
-        ledOff();
-        Thread::sleep(1500);
+        DrawingContext dc(display);
+        dc.clear(0xFF00);
+        dc.write(Point(36,5), "Ciao ciao");
     }
+    for(;;) ;
+    
+
+	//dc.write(Point(0,0), "Ciao");
+	
+    /*
+	for(;;){
+        ledOn();
+        Thread::sleep(500);
+        ledOff();
+        Thread::sleep(500);
+    }
+    */
+    
+    
 }

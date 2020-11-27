@@ -73,7 +73,6 @@ const unsigned char initCmds[] = {
 const unsigned char initST7735b[] = {
     0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
     0xB1, 0x03, 0x00, 0x06, 0x03,       // ST7735_FRMCTR1, normal mode frame rate
-    0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
     0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
     0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
     0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
@@ -93,11 +92,12 @@ const unsigned char initST7735b[] = {
         0x1B, 0x1A, 0x24, 0x2B,
         0x06, 0x06, 0x02, 0x0F,
     0x2A, 0x04,                         // ST7735_CASET, column address
-        0x00, 0x02,                     // x_start = 0
-        0x00, 0x81,                     // x_end = 127
+        0x00, 0x00,                     // x_start = 0
+        0x00, 0x7F,                     // x_end = 127
     0x2B, 0x04,                         // ST7735_RASET, row address
-        0x00, 0x02,                     // x_start = 0
-        0x00, 0x81,                     // x_end = 159
+        0x00, 0x00,                     // x_start = 0
+        0x00, 0x9F,                     // x_end = 159
+    0x36, 0x01, 0x00,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
     0x13,                               // ST7735_NORON, normal display mode on
     0x00
 };
@@ -136,23 +136,27 @@ void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
 }
 
 void DisplayImpl::clear(Color color) {
-    clear(Point(0,0), Point(width-1,  height-1), color);
+    clear(Point(0,0), Point(width-1, height-1), color);
 }
 
 void DisplayImpl::clear(Point p1, Point p2, Color color) {
     unsigned char lsb = color & 0xFF;
-    unsigned char msb = (color >> 8) & 0xFF;
+    unsigned char msb = color >> 8;
     
-    imageWindow(p1, p2);
+    //imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
     SPITransaction t;
-    writeRamBegin();
+    writeRamBegin();   
+
+    lsb = 0x00;
+    msb = 0xFF;
+
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
         writeRam(msb);
         delayUs(1);
-        writeRam(lsb);  
+        writeRam(lsb);
         delayUs(1);      
     }
 }
@@ -349,10 +353,11 @@ DisplayImpl::DisplayImpl(): which(0) {
     writeReg(0x01);    // ST7735_SWRESET
     delayMs(150);
     writeReg(0x11);    // ST7735_SLPOUT
-    delayMs(255);
+    delayMs(500);
 
     //_print(0, "post_reset", 10);
 
+    /*
     const unsigned char *cmds = initST7735b; 
     while(*cmds)
     {
@@ -362,8 +367,8 @@ DisplayImpl::DisplayImpl(): which(0) {
         cmds += numArgs;
         delayUs(10);
     }
-
-    //sendCmds(initST7735b);
+    */
+    sendCmds(initST7735b);
     
     doTurnOn();
     setFont(droid11);
@@ -374,15 +379,19 @@ DisplayImpl::DisplayImpl(): which(0) {
 void DisplayImpl::window(Point p1, Point p2) {
     //Setting column bounds, ST7735_CASET
     unsigned char buff_caset[4];
-    buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
-    buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
-    writeReg(0x2A, buff_caset, sizeof(buff_caset));
+    buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
+    buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
+
+    const unsigned char buff1[]= { 0x00, 0x00, 0x00, 0x7F };
+    writeReg(0x2A, buff1, sizeof(buff1));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
-    buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
-    buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
-    writeReg(0x2B, buff_raset, sizeof(buff_raset));
+    buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
+    buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
+
+    const unsigned char buff2[] = { 0x00, 0x00, 0x00, 0x9F };
+    writeReg(0x2B, buff2, sizeof(buff2));
 }
 
 /**
@@ -412,7 +421,7 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
     {
         for(int i = 0; i < len; i++) {
             writeRam(*data++); 
-            //delayUs(1);
+            delayUs(1);
         }
     }
 }

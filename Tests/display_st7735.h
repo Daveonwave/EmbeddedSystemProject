@@ -338,15 +338,6 @@ private:
     }
 
     /**
-     *   register 0x36: bit 7------0
-     *       |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
-     *       ||||+---  RGB BRG order (0 for RGB)
-     *       |||+----  ML vertical refesh (0 T-to-D, 1 D-to-T)
-     *       ||+-----  MV row column exchange
-     *       |+------  MX column address order
-     *       +-------  MY row address order
-     */
-    /**
      * Set a hardware window on the screen, optimized for writing text.
      * The GRAM increment will be set to up-to-down first, then left-to-right
      * which is the correct increment to draw fonts
@@ -368,7 +359,7 @@ private:
      */
     static inline void imageWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0x08); 
+        writeReg (0x36, 0x01); 
         window(p1, p2);
     }
 
@@ -386,13 +377,6 @@ private:
         CommandTransaction c;
         writeRam(0x2C);     //ST7735_RAMWR, to write the GRAM
         //Change SPI interface to 16 bit mode, for faster pixel transfer
-        /*
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
-                  | SPI_CR1_SSI
-                  | SPI_CR1_MSTR
-                  | SPI_CR1_SPE;
-        */
     }
 
     /**
@@ -406,19 +390,6 @@ private:
         while((SPI2->SR & SPI_SR_RXNE) == 0) ;
         return SPI2->DR; //Note: reading back SPI1->DR is necessary.
     }
-
-    /**
-     * Ends a pixel transfer to the display
-     
-    static void writeRamEnd()
-    {
-        //Put SPI back into 8 bit mode
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
-                  | SPI_CR1_SSI
-                  | SPI_CR1_MSTR
-                  | SPI_CR1_SPE;
-    }*/
 
     /**
      * Write data to a display register
