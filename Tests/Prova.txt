@@ -1,4 +1,0 @@
-DOMANDE E DUBBI:
-- max depth 12-18 bits
-- event_types and event implementation
-- 

@@ -91,13 +91,13 @@ const unsigned char initST7735b[] = {
         0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
         0x1B, 0x1A, 0x24, 0x2B,
         0x06, 0x06, 0x02, 0x0F,
-    0x2A, 0x04,                         // ST7735_CASET, column address
-        0x00, 0x00,                     // x_start = 0
-        0x00, 0x7F,                     // x_end = 127
-    0x2B, 0x04,                         // ST7735_RASET, row address
-        0x00, 0x00,                     // x_start = 0
-        0x00, 0x9F,                     // x_end = 159
     0x36, 0x01, 0x00,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
+    0x2A, 0x04,                         // ST7735_CASET, column address
+        0x00, 0x0A,                     // x_start = 0
+        0x00, 0x70,                     // x_end = 127
+    0x2B, 0x04,                         // ST7735_RASET, row address
+        0x00, 0x0A,                     // x_start = 0
+        0x00, 0x70,                     // x_end = 159
     0x13,                               // ST7735_NORON, normal display mode on
     0x00
 };
@@ -150,7 +150,7 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     writeRamBegin();   
 
     lsb = 0x00;
-    msb = 0xFF;
+    msb = 0x00;
 
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
@@ -326,11 +326,11 @@ DisplayImpl::DisplayImpl(): which(0) {
 
         RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
         SPI2->CR1 = 0;
-        SPI2->CR1 = SPI_CR1_SSM  //Software cs
-                  | SPI_CR1_SSI  //Hardware cs internally tied high
-                  | (3<<3)        //Divide input clock by 16: 84/16=5.25MHz
-                  | SPI_CR1_MSTR //Master mode
-                  | SPI_CR1_SPE;  //SPI enabled
+        SPI2->CR1 = SPI_CR1_SSM     //Software cs
+                  | SPI_CR1_SSI     //Hardware cs internally tied high
+                  | (3<<3)          //Divide input clock by 16: 84/16=5.25MHz
+                  | SPI_CR1_MSTR    //Master mode
+                  | SPI_CR1_SPE;    //SPI enabled
         
         scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
         sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);

@@ -39,6 +39,30 @@ namespace mxgui {
 #error Unsupported orientation
 #endif
 
+//Control interface
+typedef Gpio<GPIOB_BASE, 13> scl;   //PB13,  SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 15> sda;   //PB15,  SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 4> csx;    //PB4,   free I/O pin
+typedef Gpio<GPIOC_BASE, 6> resx;   //PC6,   free I/O pin
+typedef Gpio<GPIOA_BASE, 8> dcx;    //PA8,   free I/O pin, used only in 4-line SPI
+
+
+//A falling edge of CSX enables the SPI1 transaction
+class SPITransaction
+{
+public:
+    SPITransaction()  { csx::low();  }
+    ~SPITransaction() { csx::high(); }
+};
+
+//A falling edge on DCX means that the transmitted byte is a command
+class CommandTransaction
+{
+public:
+    CommandTransaction()  { dcx::low();  }
+    ~CommandTransaction() { dcx::high(); }
+};
+
 class DisplayImpl : public Display
 {
 public:
@@ -46,6 +70,41 @@ public:
      * \return an instance to this class(singleton)
      */
     static DisplayImpl& instance();
+
+     /**
+     * Used to send pixel data to the display's RAM, and also to send commands.
+     * The SPI chip select must be low before calling this member function
+     * \param data data to write
+     */
+    static unsigned char writeRam(unsigned char data)
+    {
+        SPI2->DR = data;
+        // wait until receiver buffer not empty = true
+        while((SPI2->SR & SPI_SR_RXNE) == 0) ;
+        return SPI2->DR; //Note: reading back SPI ->DR is necessary.
+    }
+
+    /**
+     * Write data to a display register
+     * \param cmd which command
+     */
+    static void writeCmd(unsigned char cmd)
+    {
+        {
+            CommandTransaction c;
+            writeRam(cmd);
+        }
+    }
+
+    /**
+     * Write data to a display register
+     * \param data data to write
+     */
+    static void writeData(unsigned char data)
+    {
+        writeRam(data);
+        delayUs(1);
+    }
 
     /**
      * Turn the display On after it has been turned Off.
@@ -111,7 +170,7 @@ public:
      * member function, for example line(), you have to call beginPixel() again
      * before calling setPixel().
      *
-     * MAYBE USELESS IN ST7735
+     * TODO MAYBE USELESS IN ST7735
      * This backend does not require it, so it is a blank.
      */
     void beginPixel() override;
@@ -195,8 +254,7 @@ public:
      * Pixel iterator. A pixel iterator is an output iterator that allows to
      * define a window on the display and write to its pixels.
      */
-    class pixel_iterator
-    {
+    class pixel_iterator {
     public:
         /**
          * Default constructor, results in an invalid iterator.
@@ -211,7 +269,14 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            //writeRam(color);
+
+            unsigned char lsb = color & 0xFF;
+            unsigned char msb = (color >> 8) & 0xFF;
+            {
+                SPITransaction t;
+                writeData(msb);
+                writeData(lsb);
+            }
             return *this;
         }
 
@@ -307,46 +372,72 @@ private:
      * Set cursor to desired location
      * \param point where to set cursor (0<=x<127, 0<=y<159)
      */
-    static void setCursor(Point p);
+    static inline void setCursor(Point p)
+    {
+        window(p, p);
+    }
 
     /**
      *   register 0x36: bit 7------0
-     *       |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
-     *       ||||+---  RGB BRG order (0 for RGB)
-     *       |||+----  ML vertical refesh (0 T-to-D, 1 D-to-T)
-     *       ||+-----  MV row column exchange
-     *       |+------  MX column address order
-     *       +-------  MY row address order
+     *       4:     |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
+     *       8:     ||||+---  RGB BRG order (0 for RGB)
+     *       16:    |||+----  ML vertical refesh (0 T-to-D, 1 D-to-T)
+     *       32:    ||+-----  MV row column exchange
+     *       64:    |+------  MX column address order
+     *       128:   +-------  MY row address order
      */
     /**
      * Set a hardware window on the screen, optimized for writing text.
-     * The GRAM increment will be set to up-to-down first, then left-to-right
+     * The GRAM increment will be set to top-to-bottom first, then left-to-right
      * which is the correct increment to draw fonts
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void textWindow(Point p1, Point p2);
+    static inline void textWindow(Point p1, Point p2)
+    {
+        {
+            SPITransaction t;
+            writeCmd(0x36);
+            writeData(0xC0);    //TODO (0xE0) 224: mirror both X, Y. T>B then L>R
+        }
+        window(p1, p2);
+    }
+
     /**
      * Set a hardware window on the screen, optimized for drawing images.
-     * The GRAM increment will be set to left-to-right first, then up-to-down
+     * The GRAM increment will be set to left-to-right first, then top-to-bottom
      * which is the correct increment to draw images
      * \param p1 upper left corner of the window
      * \param p2 lower right corner of the window
      */
-    static void imageWindow(Point p1, Point p2);
+    static inline void imageWindow(Point p1, Point p2)
+    {
+        {
+            SPITransaction t;
+            writeCmd(0x36);
+            writeData(0xC0);    //(0xC0) 192: mirror both X, Y. L>R then T>B
+        }
+        window(p1, p2);
+    }
+
     /**
      * Common part of all window commands
      */
     static void window(Point p1, Point p2);
 
 
-    Color *buffer; ///< For scanLineBuffer
-    Color buffers[2][128]; ///< Line buffers for scanline overlapped I/O
-    int which; ///< Currently empty buffer
+    /**
+     * Send initialization sequence
+     */
+    void sendInitSeq();
+
+    Color *buffer;          ///< For scanLineBuffer
+    Color buffers[2][128];  ///< Line buffers for scanline overlapped I/O
+    int which;              ///< Currently empty buffer
 };
 
 } //namespace mxgui
 
-#endif //_BOARD_STM32F407VG_STM32F4DISCOVERY
+#endif //_BOARD_STM32F4DISCOVERY
 
 #endif //DISPLAY_ST7735H

@@ -5,36 +5,25 @@
 #include "mxgui/misc_inst.h"
 #include "mxgui/level2/input.h"
 
-using namespace std;
 using namespace miosix;
 using namespace mxgui;
 
-int main()
-{
-    //using led = Gpio<GPIOB_BASE, 3>;	
-    //led::mode(Mode::OUTPUT);
-	
+int main() {
+    Display &display = DisplayManager::instance().getDisplay();
+    Point start = Point(0, 0);
+    Point end = Point(127, 159);
 
-    Display& display = DisplayManager::instance().getDisplay();
-    
     {
         DrawingContext dc(display);
-        dc.clear(0xFF00);
-        dc.write(Point(36,5), "Ciao ciao");
-    }
-    for(;;) ;
-    
+        dc.clear(black);
+        dc.setPixel(start, green);
+        dc.setPixel(end, red);
 
-	//dc.write(Point(0,0), "Ciao");
-	
-    /*
-	for(;;){
-        ledOn();
-        Thread::sleep(500);
-        ledOff();
-        Thread::sleep(500);
+        //dc.write(Point(3, 23), "X");
+        //dc.write(Point(118, 43), "T");
+        dc.clippedWrite(start, start, Point(15, 15), "F");
+
     }
-    */
-    
-    
+
+    for (;;);
 }
