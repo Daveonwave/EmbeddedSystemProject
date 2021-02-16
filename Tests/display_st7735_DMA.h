@@ -41,11 +41,11 @@ namespace mxgui {
 #endif
 
 //Control interface
-typedef Gpio<GPIOB_BASE, 3> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOB_BASE, 5> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOB_BASE, 4> csx; //free I/O pin
-typedef Gpio<GPIOC_BASE, 6> resx; //free I/O pin
-typedef Gpio<GPIOA_BASE, 8> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOB_BASE, 13> scl;   //PB13,  SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 15> sda;   //PB15,  SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 4> csx;    //PB4,   free I/O pin
+typedef Gpio<GPIOC_BASE, 6> resx;   //PC6,   free I/O pin
+typedef Gpio<GPIOA_BASE, 8> dcx;    //PA8,   free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 
@@ -361,8 +361,7 @@ private:
      */
     static inline void textWindow(Point p1, Point p2) {
         // reg 0x36 is MADCTL (memory data access control)
-        // value 0x20 is YXV=001 ML=0 RGB=0 MH=0  --> 00100000
-        writeReg (0x36, 0x20);
+        writeReg (0x36, 0xE0);
         window(p1, p2);
     }
 
@@ -375,8 +374,7 @@ private:
      */
     static inline void imageWindow(Point p1, Point p2){
         // reg 0x36 is MADCTL (memory data access control)
-        // value 0x0 is YXV=000 ML=0 RGB=0 MH=0  --> 00000000
-        writeReg (0x36, 0x00, 0x01);
+        writeReg (0x36, 0xC0);
         window(p1, p2);
     }
 
@@ -394,8 +392,8 @@ private:
         CommandTransaction c;
         writeRam(0x2C);     //ST7735_RAMWR
         //Change SPI interface to 16 bit mode, for faster pixel transfer
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
+        SPI2->CR1 = 0;
+        SPI2->CR1 = SPI_CR1_SSM
             | SPI_CR1_SSI
             | SPI_CR1_DFF //TODO: this could be useless
             | SPI_CR1_MSTR
@@ -409,9 +407,9 @@ private:
      */
     static unsigned short writeRam(unsigned short data)
     {
-        SPI1->DR = data;
-        while((SPI1->SR & SPI_SR_RXNE)==0) ;
-        return SPI1->DR; //Note: reading back SPI1->DR is necessary.
+        SPI2->DR = data;
+        while((SPI2->SR & SPI_SR_RXNE)==0) ;
+        return SPI2->DR; //Note: reading back SPI2->DR is necessary.
     }
 
     /**
@@ -420,8 +418,8 @@ private:
     static void writeRamEnd()
     {
         //Put SPI back into 8 bit mode
-        SPI1->CR1 = 0;
-        SPI1->CR1 = SPI_CR1_SSM
+        SPI2->CR1 = 0;
+        SPI2->CR1 = SPI_CR1_SSM
             | SPI_CR1_SSI
             | SPI_CR1_MSTR
             | SPI_CR1_SPE;

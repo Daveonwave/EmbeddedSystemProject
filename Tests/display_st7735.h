@@ -40,11 +40,11 @@ namespace mxgui {
 #endif
 
 //Control interface
-typedef Gpio<GPIOB_BASE, 13> scl; //SPI1_SCK (af5)
-typedef Gpio<GPIOB_BASE, 15> sda; //SPI1_MOSI (af5)
-typedef Gpio<GPIOB_BASE, 4> csx; //free I/O pin
-typedef Gpio<GPIOC_BASE, 6> resx; //free I/O pin
-typedef Gpio<GPIOA_BASE, 8> dcx; //free I/O pin, used only in 4-line SPI
+typedef Gpio<GPIOB_BASE, 13> scl;   //PB13,  SPI1_SCK (af5)
+typedef Gpio<GPIOB_BASE, 15> sda;   //PB15,  SPI1_MOSI (af5)
+typedef Gpio<GPIOB_BASE, 4> csx;    //PB4,   free I/O pin
+typedef Gpio<GPIOC_BASE, 6> resx;   //PC6,   free I/O pin
+typedef Gpio<GPIOA_BASE, 8> dcx;    //PA8,   free I/O pin, used only in 4-line SPI
 //rdx not used in serial, only parallel
 //te not used in serial, only parallel
 
@@ -236,7 +236,14 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            //writeRam(color);
+            
+            unsigned char lsb = color & 0xFF;
+            unsigned char msb = (color >> 8) & 0xFF;
+            
+            SPITransaction t;
+            writeRam(msb);
+            writeRam(lsb);
+            
             return *this;
         }
 
@@ -346,7 +353,7 @@ private:
      */
     static inline void textWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0x20);
+        writeReg (0x36, 0xE0);
         window(p1, p2);
     }
 
@@ -359,7 +366,7 @@ private:
      */
     static inline void imageWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0x01); 
+        writeReg (0x36, 0xC0); 
         window(p1, p2);
     }
 

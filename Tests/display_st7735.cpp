@@ -77,8 +77,8 @@ const unsigned char initST7735b[] = {
     0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
     0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
     0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-    0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
-    0xC3, 0x02, 0x8A, 0x2A,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
+    //0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
+    0xC3, 0x02, 0x02, 0x07,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
     0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
     0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle)
     0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
@@ -91,7 +91,8 @@ const unsigned char initST7735b[] = {
         0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
         0x1B, 0x1A, 0x24, 0x2B,
         0x06, 0x06, 0x02, 0x0F,
-    0x36, 0x01, 0x00,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
+    //TODO: da togliere e cambiare
+    0x36, 0x01, 0xC0,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
     0x2A, 0x04,                         // ST7735_CASET, column address
         0x00, 0x0A,                     // x_start = 0
         0x00, 0x70,                     // x_end = 127
@@ -112,6 +113,7 @@ DisplayImpl& DisplayImpl::instance() {
 
 void DisplayImpl::doTurnOn() {
     writeReg(0x29);
+    delayMs(150);
 }
 
 void DisplayImpl::doTurnOff() {
@@ -143,14 +145,11 @@ void DisplayImpl::clear(Point p1, Point p2, Color color) {
     unsigned char lsb = color & 0xFF;
     unsigned char msb = color >> 8;
     
-    //imageWindow(p1, p2);
+    imageWindow(p1, p2);
     int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
 
     SPITransaction t;
     writeRamBegin();   
-
-    lsb = 0x00;
-    msb = 0x00;
 
     //Send data to write on GRAM
     for(int i=0; i < numPixels; i++) {       
@@ -187,7 +186,8 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         int numPixels = abs(a.x() - b.x());
 
         SPITransaction t;
-        writeRamBegin(); 
+        writeRamBegin();
+
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
             writeRam(msb);
@@ -206,6 +206,7 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         
         SPITransaction t;
         writeRamBegin();
+
         //Send data to write on GRAM
         for(int i=0; i < numPixels; i++) { 
             writeRam(msb);
@@ -223,12 +224,13 @@ void DisplayImpl::line(Point a, Point b, Color color) {
 void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) {
     unsigned char lsb = 0x00;
     unsigned char msb = 0x00;
-    
-    imageWindow(p, Point(width - 1, p.y()));  
+
     if(p.x() + length > width) { return; }
+    imageWindow(p, Point(width - 1, p.y())); 
 
     SPITransaction t;
     writeRamBegin();
+
     //Send data to write on GRAM
     for(int i=0; i < length; i++) { 
         lsb = colors[i] & 0xFF;
@@ -267,6 +269,7 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
 
         SPITransaction t;
         writeRamBegin();
+
         for(int i=0; i <= numPixels; i++)
         {
             lsb = imgData[i] & 0xFF;
@@ -343,19 +346,16 @@ DisplayImpl::DisplayImpl(): which(0) {
     dcx::high();
 
     resx::high();
-    Thread::sleep(250);
+    delayMs(150);
     resx::low();
-    Thread::sleep(250);
+    delayMs(150);
     resx::high();
-
-    //_print(0, "pre_reset", 9);
+    delayMs(150);
 
     writeReg(0x01);    // ST7735_SWRESET
     delayMs(150);
     writeReg(0x11);    // ST7735_SLPOUT
-    delayMs(500);
-
-    //_print(0, "post_reset", 10);
+    delayMs(150);
 
     /*
     const unsigned char *cmds = initST7735b; 
@@ -371,27 +371,25 @@ DisplayImpl::DisplayImpl(): which(0) {
     sendCmds(initST7735b);
     
     doTurnOn();
-    setFont(droid11);
+    setFont(miscFixed);
     setTextColor(make_pair(white, black));
 }
 
-
+//TODO: aggiustare gli offsets +1 e +2
 void DisplayImpl::window(Point p1, Point p2) {
     //Setting column bounds, ST7735_CASET
     unsigned char buff_caset[4];
     buff_caset[0] = p1.x()>>8;      buff_caset[1] = p1.x() & 255;
     buff_caset[2] = p2.x()>>8;      buff_caset[3] = p2.x() & 255;
 
-    const unsigned char buff1[]= { 0x00, 0x00, 0x00, 0x7F };
-    writeReg(0x2A, buff1, sizeof(buff1));
+    writeReg(0x2A, buff_caset, sizeof(buff_caset));
     
     //Setting row bounds, ST7735_RASET
     unsigned char buff_raset[4];
     buff_raset[0] = p1.y()>>8;      buff_raset[1] = p1.y() & 255;
     buff_raset[2] = p2.y()>>8;      buff_raset[3] = p2.y() & 255;
 
-    const unsigned char buff2[] = { 0x00, 0x00, 0x00, 0x9F };
-    writeReg(0x2B, buff2, sizeof(buff2));
+    writeReg(0x2B, buff_raset, sizeof(buff_raset));
 }
 
 /**

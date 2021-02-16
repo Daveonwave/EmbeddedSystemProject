@@ -59,7 +59,7 @@ void DisplayImpl::doTurnOn() {
         FastInterruptDisableLock dLock;
 
         RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
-        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
         SPI1->CR2=0;
         SPI1->CR1=SPI_CR1_SSM  //Software cs
                 | SPI_CR1_SSI  //Hardware cs internally tied high
