@@ -1,4 +1,4 @@
-#include "display_st7735_v2.h"
+#include "display_st7735.h"
 #include "miosix.h"
 #include <cstdarg>
 
@@ -171,7 +171,7 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
     short int yEnd = p.y() + img.getHeight() - 1;
     if(xEnd >= width || yEnd >= height) { return; }
 
-    const unsigned short *imgData = img.getData();  
+    const unsigned short *imgData = img.getData();
     if(imgData != 0)
     {
         unsigned char lsb = 0x00;
@@ -192,8 +192,8 @@ void DisplayImpl::drawImage(Point p, const ImageBase& img) {
                 writeData(lsb);
             }
         }
-    } 
-    else { img.draw(*this,p); }        
+    }
+    else { img.draw(*this,p); }
 }
 
 void DisplayImpl::clippedDrawImage(Point p, Point a, Point b, const ImageBase& img) {
@@ -207,60 +207,25 @@ void DisplayImpl::drawRectangle(Point a, Point b, Color c) {
     line(Point(a.x(), b.y()), a, c);
 }
 
+
 void DisplayImpl::window(Point p1, Point p2) {
-    //Setting column bounds, ST7735_CASET (adding offset +2)
-
-    unsigned char buff_caset[4];
-    /*
-    buff_caset[0] = (p1.x()+2)>>8 & 255;      buff_caset[1] = (p1.x()+2) & 255;
-    buff_caset[2] = (p2.x()+2)>>8 & 255;      buff_caset[3] = (p2.x()+2) & 255;
-    */
-
-    buff_caset[0] = p1.x()>>8 & 255;      buff_caset[1] = p1.x() & 255;
-    buff_caset[2] = p2.x()>>8 & 255;      buff_caset[3] = p2.x() & 255;
-
-    {
-        SPITransaction t;
-        writeCmd(0x2A);
-        writeData(buff_caset[0]);
-        writeData(buff_caset[1]);
-        writeData(buff_caset[2]);
-        writeData(buff_caset[3]);
-    }
-
-    //Setting row bounds, ST7735_RASET (adding offset +1)
-    unsigned char buff_raset[4];
-    /*
-    buff_raset[0] = (p1.y()+1)>>8 & 255;      buff_raset[1] = (p1.y()+1) & 255;
-    buff_raset[2] = (p2.y()+1)>>8 & 255;      buff_raset[3] = (p2.y()+1) & 255;
-     */
-    buff_raset[0] = p1.y()>>8 & 255;      buff_raset[1] = p1.y() & 255;
-    buff_raset[2] = p2.y()>>8 & 255;      buff_raset[3] = p2.y() & 255;
-
-    {
-        SPITransaction t;
-        writeCmd(0x2B);
-        writeData(buff_raset[0]);
-        writeData(buff_raset[1]);
-        writeData(buff_raset[2]);
-        writeData(buff_raset[3]);
-    }
+    // TODO useless
 }
 
 void DisplayImpl::update() {}
 
 DisplayImpl::pixel_iterator
 DisplayImpl::begin(Point p1, Point p2, IteratorDirection d) {
-        if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) { 
-            return pixel_iterator(); 
+        if(p1.x()<0 || p1.y()<0 || p2.x()<0 || p2.y()<0) {
+            return pixel_iterator();
         }
         if(p1.x() >= width || p1.y() >= height || p2.x() >= width || p2.y() >= height) {
             return pixel_iterator();
         }
-        if(p2.x() < p1.x() || p2.y() < p1.y()) { 
+        if(p2.x() < p1.x() || p2.y() < p1.y()) {
             return pixel_iterator();
         }
-    
+
         if(d == DR) {   // Down - Right
             textWindow(p1, p2);
         }
@@ -294,7 +259,7 @@ DisplayImpl::DisplayImpl(): which(0) {
                   | SPI_CR1_BR_1            // clock divider: 16  ->  2,625 MHz -> 381 ns
                   | SPI_CR1_MSTR            //(Master Selection) Master mode
                   | SPI_CR1_SPE;            //SPI enabled
-        
+
         scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
         sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
         // GPIO software controlled
@@ -338,60 +303,9 @@ void DisplayImpl::sendInitSeq() {
 
         //COLMOD, color mode: 16-bit/pixel
         writeCmd(0x3A);     writeData(0x05);
-        delayMs(150);
-
-        //FRMCTR1, normal mode frame rate
-        writeCmd(0xB1);     writeData(0x00); writeData(0x06); writeData(0x03);
-        delayMs(150);
-
+        /*
         //MADCTL, top-bottom, left-right refresh, RGB color mode
         writeCmd(0x36);     writeData(0xC0);
-        delayMs(150);
-
-        //DISSET5, display settings
-        writeCmd(0xB6);     writeData(0x15); writeData(0x02);
-        delayMs(150);
-
-        //INVCTR, line inversion active
-        writeCmd(0xB4);     writeData(0x00);
-        delayMs(150);
-
-        //PWCTR1, default (4.7V, 1.0 uA)
-        writeCmd(0xC0);     writeData(0x02); writeData(0x70);
-        delayMs(150);
-        //PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-        writeCmd(0xC1);     writeData(0x05);
-        delayMs(150);
-
-        /* TODO not working
-        //PWCTR3, opamp current small, boost frequency  (NOT WORKING)
-        writeCmd(0xC2);     writeData(0x01); writeData(0x02);
-        */
-
-        //PWCTR4, default
-        writeCmd(0xC3);     writeData(0x02); writeData(0x07);
-        delayMs(150);
-
-        //VMCTR1, VCOMH=4V VCOML=-1.1
-        writeCmd(0xC5);     writeData(0x3C); writeData(0x38);
-        delayMs(150);
-
-        //PWCTR6, default
-        writeCmd(0xFC);     writeData(0x11); writeData(0x15);
-        delayMs(150);
-
-        //GMCTRP1, Gamma adjustments (pos. polarity)
-        writeCmd(0xE0);     writeData(0x09); writeData(0x16); writeData(0x09); writeData(0x20);
-                            writeData(0x21); writeData(0x1B); writeData(0x13); writeData(0x19);
-                            writeData(0x17); writeData(0x15); writeData(0x1E); writeData(0x2B);
-                            writeData(0x04); writeData(0x05); writeData(0x02); writeData(0x0E);
-        delayMs(150);
-        //GMCTRN1, Gamma adjustments (neg. polarity)
-        writeCmd(0xE1);     writeData(0x0B); writeData(0x14); writeData(0x08); writeData(0x1E);
-                            writeData(0x22); writeData(0x1D); writeData(0x18); writeData(0x1E);
-                            writeData(0x1B); writeData(0x1A); writeData(0x24); writeData(0x2B);
-                            writeData(0x06); writeData(0x06); writeData(0x02); writeData(0x0F);
-        delayMs(150);
 
         //CASET, column address
         writeCmd(0x2A);     writeData(0x00); writeData(0x02);   //x_start = 2
@@ -401,10 +315,40 @@ void DisplayImpl::sendInitSeq() {
         writeCmd(0x2B);     writeData(0x00); writeData(0x01);   //y_start = 1
                             writeData(0x00); writeData(0xA0);   //y_end = 160
         delayMs(150);
+        */
 
+        //FRMCTR1, normal mode frame rate
+        writeCmd(0xB1);     writeData(0x00); writeData(0x06); writeData(0x03);
+        //DISSET5, display settings
+        writeCmd(0xB6);     writeData(0x15); writeData(0x02);
+        //INVCTR, line inversion active
+        writeCmd(0xB4);     writeData(0x00);
+        //PWCTR1, default (4.7V, 1.0 uA)
+        writeCmd(0xC0);     writeData(0x02); writeData(0x70);
+        //PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        writeCmd(0xC1);     writeData(0x05);
+        /* TODO not working
+        //PWCTR3, opamp current small, boost frequency  (NOT WORKING)
+        writeCmd(0xC2);     writeData(0x01); writeData(0x02);
+        */
+        //PWCTR4, default
+        writeCmd(0xC3);     writeData(0x02); writeData(0x07);
+        //VMCTR1, VCOMH=4V VCOML=-1.1
+        writeCmd(0xC5);     writeData(0x3C); writeData(0x38);
+        //PWCTR6, default
+        writeCmd(0xFC);     writeData(0x11); writeData(0x15);
+        //GMCTRP1, Gamma adjustments (pos. polarity)
+        writeCmd(0xE0);     writeData(0x09); writeData(0x16); writeData(0x09); writeData(0x20);
+                            writeData(0x21); writeData(0x1B); writeData(0x13); writeData(0x19);
+                            writeData(0x17); writeData(0x15); writeData(0x1E); writeData(0x2B);
+                            writeData(0x04); writeData(0x05); writeData(0x02); writeData(0x0E);
+        //GMCTRN1, Gamma adjustments (neg. polarity)
+        writeCmd(0xE1);     writeData(0x0B); writeData(0x14); writeData(0x08); writeData(0x1E);
+                            writeData(0x22); writeData(0x1D); writeData(0x18); writeData(0x1E);
+                            writeData(0x1B); writeData(0x1A); writeData(0x24); writeData(0x2B);
+                            writeData(0x06); writeData(0x06); writeData(0x02); writeData(0x0F);
         //NORON, normal display mode on
         writeCmd(0x13);
-
         //DISPON
         writeCmd(0x29);
         delayMs(150);

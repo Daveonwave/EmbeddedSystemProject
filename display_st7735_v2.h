@@ -381,10 +381,10 @@ private:
      *   register 0x36: bit 7------0
      *       4:     |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
      *       8:     ||||+---  RGB BRG order (0 for RGB)
-     *       16:    |||+----  ML vertical refesh (0 T-to-D, 1 D-to-T)
-     *       32:    ||+-----  MV row column exchange
-     *       64:    |+------  MX column address order
-     *       128:   +-------  MY row address order
+     *       16:    |||+----  ML vertical refesh (0 T-to-B, 1 B-to-T)
+     *       32:    ||+-----  MV row column exchange (1 for X-Y exchange)
+     *       64:    |+------  MX column address order (1 for mirror X axis)
+     *       128:   +-------  MY row address order (1 for mirror Y axis)
      */
     /**
      * Set a hardware window on the screen, optimized for writing text.
@@ -397,10 +397,38 @@ private:
     {
         {
             SPITransaction t;
-            writeCmd(0x36);
-            writeData(0xC0);    //TODO (0xE0) 224: mirror both X, Y. T>B then L>R
+            writeCmd(0x36);     // MADCTL
+            writeData(0xE0);    // (0xC0) 224: mirror both X,Y. T>B then L>R
+            // TODO: should go top to down, then increment left to right
         }
-        window(p1, p2);
+        //window(p1, p2);
+        // X-Y SWAPPED
+        //Setting column bounds, ST7735_CASET (adding offset +1)
+        unsigned char buff_caset[4];
+
+        buff_caset[0] = (p1.y()+2)>>8 & 255;      buff_caset[1] = (p1.y()+1) & 255;
+        buff_caset[2] = (p2.y()+2)>>8 & 255;      buff_caset[3] = (p2.y()+1) & 255;
+        {
+            SPITransaction t;
+            writeCmd(0x2A);
+            writeData(buff_caset[0]);
+            writeData(buff_caset[1]);
+            writeData(buff_caset[2]);
+            writeData(buff_caset[3]);
+        }
+        // X-Y SWAPPED
+        //Setting row bounds, ST7735_RASET (adding offset +2)
+        unsigned char buff_raset[4];
+        buff_raset[0] = (p1.x()+1)>>8 & 255;      buff_raset[1] = (p1.x()+2) & 255;
+        buff_raset[2] = (p2.x()+1)>>8 & 255;      buff_raset[3] = (p2.x()+2) & 255;
+        {
+            SPITransaction t;
+            writeCmd(0x2B);
+            writeData(buff_raset[0]);
+            writeData(buff_raset[1]);
+            writeData(buff_raset[2]);
+            writeData(buff_raset[3]);
+        }
     }
 
     /**
@@ -414,10 +442,36 @@ private:
     {
         {
             SPITransaction t;
-            writeCmd(0x36);
-            writeData(0xC0);    //(0xC0) 192: mirror both X, Y. L>R then T>B
+            writeCmd(0x36);     // MADCTL
+            writeData(0xC0);    // (0xC0) 192: mirror both X,Y. L>R then T>B
         }
-        window(p1, p2);
+        //window(p1, p2);
+        //Setting column bounds, ST7735_CASET (adding offset +2)
+        unsigned char buff_caset[4];
+
+        buff_caset[0] = (p1.x()+2)>>8 & 255;      buff_caset[1] = (p1.x()+2) & 255;
+        buff_caset[2] = (p2.x()+2)>>8 & 255;      buff_caset[3] = (p2.x()+2) & 255;
+        {
+            SPITransaction t;
+            writeCmd(0x2A);
+            writeData(buff_caset[0]);
+            writeData(buff_caset[1]);
+            writeData(buff_caset[2]);
+            writeData(buff_caset[3]);
+        }
+
+        //Setting row bounds, ST7735_RASET (adding offset +1)
+        unsigned char buff_raset[4];
+        buff_raset[0] = (p1.y()+1)>>8 & 255;      buff_raset[1] = (p1.y()+1) & 255;
+        buff_raset[2] = (p2.y()+1)>>8 & 255;      buff_raset[3] = (p2.y()+1) & 255;
+        {
+            SPITransaction t;
+            writeCmd(0x2B);
+            writeData(buff_raset[0]);
+            writeData(buff_raset[1]);
+            writeData(buff_raset[2]);
+            writeData(buff_raset[3]);
+        }
     }
 
     /**
