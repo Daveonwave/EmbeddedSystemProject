@@ -406,8 +406,8 @@ private:
         //Setting column bounds, ST7735_CASET (adding offset +1)
         unsigned char buff_caset[4];
 
-        buff_caset[0] = (p1.y()+2)>>8 & 255;      buff_caset[1] = (p1.y()+1) & 255;
-        buff_caset[2] = (p2.y()+2)>>8 & 255;      buff_caset[3] = (p2.y()+1) & 255;
+        buff_caset[0] = (p1.y()+1)>>8 & 255;      buff_caset[1] = (p1.y()+1) & 255;
+        buff_caset[2] = (p2.y()+1)>>8 & 255;      buff_caset[3] = (p2.y()+1) & 255;
         {
             SPITransaction t;
             writeCmd(0x2A);
@@ -419,8 +419,8 @@ private:
         // X-Y SWAPPED
         //Setting row bounds, ST7735_RASET (adding offset +2)
         unsigned char buff_raset[4];
-        buff_raset[0] = (p1.x()+1)>>8 & 255;      buff_raset[1] = (p1.x()+2) & 255;
-        buff_raset[2] = (p2.x()+1)>>8 & 255;      buff_raset[3] = (p2.x()+2) & 255;
+        buff_raset[0] = (p1.x()+2)>>8 & 255;      buff_raset[1] = (p1.x()+2) & 255;
+        buff_raset[2] = (p2.x()+2)>>8 & 255;      buff_raset[3] = (p2.x()+2) & 255;
         {
             SPITransaction t;
             writeCmd(0x2B);

@@ -108,7 +108,7 @@ void DisplayImpl::line(Point a, Point b, Color color) {
             SPITransaction t;
             writeCmd(0x2C);         //RAMWR, to write the GRAM
             //Send data to write on GRAM
-            for(int i=0; i < numPixels; i++) {
+            for(int i=0; i <= numPixels; i++) {
                 writeData(msb);
                 writeData(lsb);
             }
@@ -125,7 +125,7 @@ void DisplayImpl::line(Point a, Point b, Color color) {
             SPITransaction t;
             writeCmd(0x2C);         //RAMWR, to write the GRAM
             //Send data to write on GRAM
-            for(int i=0; i < numPixels; i++) {
+            for(int i=0; i <= numPixels; i++) {
                 writeData(msb);
                 writeData(lsb);
             }

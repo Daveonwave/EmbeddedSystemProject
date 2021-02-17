@@ -28,15 +28,9 @@ using namespace miosix;
 namespace mxgui {
 
 //This display can be 12, 16 or 18 bits per pixel, check that the color depth is properly
-//configured
-//TODO: add MXGUI_COLOR_DEPTH_12_BIT and MXGUI_COLOR_DEPTH_18_BIT which are not present
-//in mxgui_settings.h
+//configured in mxgui_settings.h
 #ifndef MXGUI_COLOR_DEPTH_16_BIT
 #error The ST7735 driver requires a color depth of 12 or 16 or 18 bits per pixel
-#endif
-
-#ifndef MXGUI_ORIENTATION_VERTICAL
-#error Unsupported orientation
 #endif
 
 //Control interface
@@ -45,8 +39,6 @@ typedef Gpio<GPIOB_BASE, 15> sda;   //PB15,  SPI1_MOSI (af5)
 typedef Gpio<GPIOB_BASE, 4> csx;    //PB4,   free I/O pin
 typedef Gpio<GPIOC_BASE, 6> resx;   //PC6,   free I/O pin
 typedef Gpio<GPIOA_BASE, 8> dcx;    //PA8,   free I/O pin, used only in 4-line SPI
-//rdx not used in serial, only parallel
-//te not used in serial, only parallel
 
 //A falling edge of CSX enables the SPI1 transaction
 class SPITransaction
@@ -135,9 +127,6 @@ public:
      * call any other member function in this class. If you call another
      * member function, for example line(), you have to call beginPixel() again
      * before calling setPixel().
-     *
-     * MAYBE USELESS IN ST7735
-     * This backend does not require it, so it is a blank.
      */
     void beginPixel() override;
 
@@ -212,7 +201,6 @@ public:
      /**
      * Make all changes done to the display since the last call to update()
      * visible.
-     * TODO: understand if it can be useful or not.
      */
     void update() override;
 
@@ -236,14 +224,14 @@ public:
         pixel_iterator& operator= (Color color)
         {
             pixelLeft--;
-            
+
             unsigned char lsb = color & 0xFF;
             unsigned char msb = (color >> 8) & 0xFF;
-            
+
             SPITransaction t;
             writeRam(msb);
             writeRam(lsb);
-            
+
             return *this;
         }
 
@@ -327,8 +315,16 @@ public:
 
 private:
 
-    static const short int width = 128;
-    static const short int height = 160;
+    #if defined MXGUI_ORIENTATION_VERTICAL
+        static const short int width    = 128;
+        static const short int height   = 160;
+    #elif defined MXGUI_ORIENTATION_HORIZONTAL
+        static const short int width    = 160;
+        static const short int height   = 128;
+    #else
+        #error No orientation defined
+    #endif
+
     /**
      * Constructor.
      * Do not instantiate objects of this type directly from application code.
@@ -337,13 +333,27 @@ private:
 
     /**
      * Set cursor to desired location
-     * \param point where to set cursor (0<=x<127, 0<=y<159)
+     * \param point where to set cursor (0<=x<=127, 0<=y<=159)
      */
     static inline void setCursor(Point p)
     {
-        window(p, p);
+        #ifdef MXGUI_ORIENTATION_VERTICAL
+            window(p, p, false);
+        #else //MXGUI_ORIENTATION_HORIZONTAL
+            //window(Point(p.y(), 159-p.x()), Point(p.y(), 159-p.x()), true);
+            window(p, p, true);
+        #endif
     }
 
+    /**
+     *   register 0x36: bit 7------0
+     *       4:     |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
+     *       8:     ||||+---  RGB BRG order (0 for RGB)
+     *       16:    |||+----  ML vertical refesh (0 T-to-B, 1 B-to-T)
+     *       32:    ||+-----  MV row column exchange (1 for X-Y exchange)
+     *       64:    |+------  MX column address order (1 for mirror X axis)
+     *       128:   +-------  MY row address order (1 for mirror Y axis)
+     */
     /**
      * Set a hardware window on the screen, optimized for writing text.
      * The GRAM increment will be set to up-to-down first, then left-to-right
@@ -353,8 +363,14 @@ private:
      */
     static inline void textWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0xE0);
-        window(p1, p2);
+        #ifdef MXGUI_ORIENTATION_VERTICAL
+            writeReg (0x36, 0xE0);      // MADCTL
+            window(p1, p2, true);
+        #else //MXGUI_ORIENTATION_HORIZONTAL
+            writeReg (0x36, 0xC0);      // MADCTL
+            //window(Point(p1.y(), p1.y()), Point(159-p2.x(), 159-p1.x()), false);
+            window(Point(p1.y(), p1.x()), Point(p2.y(), p2.x()), false);
+        #endif
     }
 
     /**
@@ -366,24 +382,29 @@ private:
      */
     static inline void imageWindow(Point p1, Point p2)
     {
-        writeReg (0x36, 0xC0); 
-        window(p1, p2);
+        #ifdef MXGUI_ORIENTATION_VERTICAL
+            writeReg (0x36, 0xC0);      // MADCTL
+            window(p1, p2, false);
+        #else //MXGUI_ORIENTATION_HORIZONTAL
+            writeReg (0x36, 0xE0);      // MADCTL
+            //window(Point(p1.y(), p2.y()), Point(159-p2.x(), 159-p1.x()), true);
+            window(Point(p1.y(), p1.x()), Point(p2.y(), p2.x()), false);
+        #endif
+
     }
 
     /**
      * Common part of all window commands
      */
-    static void window(Point p1, Point p2);
+    static void window(Point p1, Point p2, bool swap);
 
     /**
-     * Sends command 0x2c which is the one to start sending pixels.
-     * Also, change SPI interface to 16 bit mode
+     * Sends command 0x2C to signal the start of data sending
      */
     static void writeRamBegin()
     {
         CommandTransaction c;
         writeRam(0x2C);     //ST7735_RAMWR, to write the GRAM
-        //Change SPI interface to 16 bit mode, for faster pixel transfer
     }
 
     /**
@@ -419,9 +440,9 @@ private:
      */
     static void sendCmds(const unsigned char *cmds);
 
-    Color *buffer; ///< For scanLineBuffer
-    Color buffers[2][128]; ///< Line buffers for scanline overlapped I/O
-    int which; ///< Currently empty buffer
+    Color *buffer;          //< For scanLineBuffer
+    Color buffers[2][128];  //< Line buffers for scanline overlapped I/O
+    int which;              //< Currently empty buffer
 };
 
 } //namespace mxgui
