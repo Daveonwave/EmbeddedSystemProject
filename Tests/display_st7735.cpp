@@ -8,7 +8,7 @@ using namespace miosix;
 #ifdef _BOARD_STM32F4DISCOVERY
 
 namespace mxgui {
-
+    
 /**
  * Function to attach the display we are using.
  */

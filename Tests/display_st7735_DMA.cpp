@@ -12,7 +12,7 @@ using namespace miosix;
 void __attribute__((naked)) DMA2_Stream3_IRQHandler()
 {
     saveContext();
-    asm volatile("bl _Z20SPI1txDmaHandlerImplv");  //TODO: controllare branch to label assembly
+    asm volatile("bl _Z20SPI2txDmaHandlerImplv");  //TODO: controllare branch to label assembly
     restoreContext();
 }
 
@@ -23,7 +23,7 @@ static bool dmaTransferActivated = false;  //DMA transfer has been activated, an
 /**
  * DMA TX end of transfer actual implementation
  */
-void __attribute__((used)) SPI1txDmaHandlerImpl()
+void __attribute__((used)) SPI2txDmaHandlerImpl()
 {
     DMA2->LIFCR = DMA_LIFCR_CTCIF3
                 | DMA_LIFCR_CTEIF3
@@ -54,94 +54,15 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    //TODO: BSP configuration?? (vedi sony-newman)
-    {
-        FastInterruptDisableLock dLock;
-
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
-        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
-        SPI1->CR2=0;
-        SPI1->CR1=SPI_CR1_SSM  //Software cs
-                | SPI_CR1_SSI  //Hardware cs internally tied high
-                | SPI_CR1_MSTR //Master mode
-                | SPI_CR1_SPE; //SPI enabled
-    }
-
-    //TODO: GPIOs are really already enabled? (RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN)
-    {
-        FastInterruptDisableLock dLock;
-
-        scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
-        sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
-        csx::mode(Mode::OUTPUT);
-        dcx::mode(Mode::OUTPUT);
-        resx::mode(Mode::OUTPUT);
-    }
-
-    // TODO: fatto a caso, copiato da sony-newman
-    resx::low();
-    Thread::sleep(10);
-    resx::high();
-    Thread::sleep(10);
-    
-    writeReg(0x01);    // ST7735_SWRESET
+    //waitDmaCompletion();
+    writeReg(0x29);
     delayMs(150);
-    writeReg(0x11);    // ST7735_SLPOUT
-    delayMs(255);
-
-    const unsigned char initCmds[] = {
-        0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
-        0xB1, 0x03, 0x01, 0x2C, 0x2D,       // ST7735_FRMCTR1, normal mode frame rate
-        0x36, 0x01, 0x08,                   // ST7735_MADCTL, row/col addr, bottom-top refresh
-        0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
-        0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
-        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-        0xC2, 0x02, 0x01, 0x02,             // ST7735_PWCTR3, opamp current small, boost frequency
-        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
-        0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle) TODO: get rid of it
-        0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
-            0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
-            0x21, 0x1B, 0x13, 0x19,         // accurate colors)
-            0x17, 0x15, 0x1E, 0x2B,
-            0x04, 0x05, 0x02, 0x0E,
-        0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
-            0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
-            0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
-            0x1B, 0x1A, 0x24, 0x2B,
-            0x06, 0x06, 0x02, 0x0F,
-        0x2A, 0x04,                         // ST7735_CASET, column address
-            0x00, 0x00,                     // x_start = 0
-            0x00, 0x7F,                     // x_end = 127
-        0x2B, 0x04,                         // ST7735_RASET, row address
-            0x00, 0x00,                     // x_start = 0
-            0x00, 0x9F,                     // x_end = 159
-        0x13, 0x00,                         // ST7735_NORON, normal display mode on
-        0x29, 0x00,                         // ST7735_DISPON, display on
-        0x00                                //END while
-    };
-
-    //Send initializiation commands
-    const unsigned char *cmds=initCmds;
-    while(*cmds)
-    {
-        unsigned char cmd=*cmds++;
-        unsigned char numArgs=*cmds++;
-        writeReg(cmd,cmds,numArgs);
-        cmds+=numArgs;
-    }
-
-    clear(Color(0x0000));
-    waitDmaCompletion();
-    
-    //Turn on display
-    //writeReg(0x29,0x00);
-
 }
 
 void DisplayImpl::doTurnOff() {
     waitDmaCompletion();
-    //TODO: implementation
+    writeReg(0x28);     //ST7735_DISPOFF TODO: should be followed by SLPIN
+    delayMs(150);
 }
 
 //No function to set brightness
@@ -162,7 +83,7 @@ void DisplayImpl::clippedWrite(Point p, Point a,  Point b, const char *text) {
 }
 
 void DisplayImpl::clear(Color color) {
-    clear(Point(0,0), Point(width-1,  height-1), color);
+    clear(Point(0,0), Point(width-1, height-1), color);
 }
 
 //TODO: TO IMPLEMENT
@@ -210,9 +131,6 @@ void DisplayImpl::line(Point a, Point b, Color color) {
         startDmaTransfer(&pixel, numPixels + 1, false);
         return;
     }
-    //TODO: check comments
-    //General case, always works but it is much slower due to the display
-    //not having fast random access to pixels
     Line::draw(*this, a, b, color);
 }
 
@@ -283,7 +201,7 @@ DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
     if(d == DR) textWindow(p1, p2);
     else imageWindow(p1, p2);
     
-    csx::low(); //Will be deasserted by the iterator
+    SPITransaction t;
     writeRamBegin();
     
     unsigned int numPixels = (p2.x() - p1.x() + 1) * (p2.y() - p1.y() + 1);
@@ -293,7 +211,51 @@ DisplayImpl::pixel_iterator DisplayImpl::begin(Point p1,
 DisplayImpl::~DisplayImpl() {}
 
 DisplayImpl::DisplayImpl(): which(0) {
+    {
+        FastInterruptDisableLock dLock;
 
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
+        SPI2->CR2=0;
+        SPI2->CR1=SPI_CR1_SSM  //Software cs
+                | SPI_CR1_SSI  //Hardware cs internally tied high
+                | SPI_CR1_MSTR //Master mode
+                | SPI_CR1_SPE; //SPI enabled
+
+        scl::mode(Mode::ALTERNATE);     scl::alternateFunction(5);
+        sda::mode(Mode::ALTERNATE);     sda::alternateFunction(5);
+        csx::mode(Mode::OUTPUT);
+        dcx::mode(Mode::OUTPUT);
+        resx::mode(Mode::OUTPUT);
+    }
+
+    csx::high();
+    dcx::high();
+
+    resx::high();
+    delayMs(150);
+    resx::low();
+    delayMs(150);
+    resx::high();
+    delayMs(150);
+    
+    writeReg(0x01);    // ST7735_SWRESET
+    delayMs(150);
+    writeReg(0x11);    // ST7735_SLPOUT
+    delayMs(150);
+
+    //Send initializiation commands
+    const unsigned char *cmds=initCmds;
+    while(*cmds)
+    {
+        unsigned char cmd=*cmds++;
+        unsigned char numArgs=*cmds++;
+        writeReg(cmd,cmds,numArgs);
+        cmds+=numArgs;
+    }
+
+    waitDmaCompletion();
+    
     doTurnOn();
     setFont(droid11);
     setTextColor(make_pair(white, black));
@@ -338,7 +300,7 @@ void DisplayImpl::writeReg(unsigned char reg, const unsigned char *data, int len
         CommandTransaction c;
         writeRam(reg);
     }
-    if(data) for(int i=0;i<len;i++) writeRam(*data++);
+    if(data) for(int i = 0; i < len; i++) writeRam(*data++);
 }
 
 /**
@@ -353,12 +315,12 @@ void DisplayImpl::startDmaTransfer(const unsigned short *data, int length,
         writeRam(0x2C);     // ST7735_RAMWR, no restriction on length of parameters
     }
     //Wait until the SPI is busy, required otherwise the last byte is not fully sent
-    while((SPI1->SR & SPI_SR_TXE) == 0) ;
-    while(SPI1->SR & SPI_SR_BSY) ;
+    while((SPI2->SR & SPI_SR_TXE) == 0) ;
+    while(SPI2->SR & SPI_SR_BSY) ;
 
-    SPI1->CR1 = 0;
-    SPI1->CR2 = SPI_CR2_TXDMAEN;
-    SPI1->CR1 = SPI_CR1_SSM
+    SPI2->CR1 = 0;
+    SPI2->CR2 = SPI_CR2_TXDMAEN;
+    SPI2->CR1 = SPI_CR1_SSM
               | SPI_CR1_SSI
               | SPI_CR1_DFF
               | SPI_CR1_MSTR
@@ -372,7 +334,7 @@ void DisplayImpl::startDmaTransfer(const unsigned short *data, int length,
     NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
     DMA2_Stream3->CR = 0;
-    DMA2_Stream3->PAR = reinterpret_cast<unsigned int>(&SPI1->DR);
+    DMA2_Stream3->PAR = reinterpret_cast<unsigned int>(&SPI2->DR);
     DMA2_Stream3->M0AR = reinterpret_cast<unsigned int>(data);
     DMA2_Stream3->NDTR = length;
     DMA2_Stream3->CR = DMA_SxCR_CHSEL_0 //Channel 3
@@ -415,22 +377,46 @@ void DisplayImpl::waitDmaCompletion()
     NVIC_DisableIRQ(DMA2_Stream3_IRQn);
 
     //Wait for last byte to be sent
-    while((SPI1->SR & SPI_SR_TXE) == 0) ;
-    while(SPI1->SR & SPI_SR_BSY) ;
+    while((SPI2->SR & SPI_SR_TXE) == 0) ;
+    while(SPI2->SR & SPI_SR_BSY) ;
 
     csx::high();
     
-    SPI1->CR1=0;
-    SPI1->CR2=0;
-    SPI1->CR1=SPI_CR1_SSM
+    SPI2->CR1=0;
+    SPI2->CR2=0;
+    SPI2->CR1=SPI_CR1_SSM
             | SPI_CR1_SSI
             | SPI_CR1_MSTR
             | SPI_CR1_SPE;
 
     //Quirk: reset RXNE by reading DR, or a byte remains in the input buffer
-    volatile short temp=SPI1->DR;
+    volatile short temp=SPI2->DR;
     (void)temp;
 }
+
+const unsigned char initCmds[] = {
+        0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
+        0xB1, 0x03, 0x00, 0x06, 0x03,       // ST7735_FRMCTR1, normal mode frame rate
+        0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
+        0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
+        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        0xC3, 0x02, 0x02, 0x07,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
+        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+        0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle)
+        0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
+            0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
+            0x21, 0x1B, 0x13, 0x19,         // accurate colors)
+            0x17, 0x15, 0x1E, 0x2B,
+            0x04, 0x05, 0x02, 0x0E,
+        0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
+            0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
+            0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
+            0x1B, 0x1A, 0x24, 0x2B,
+            0x06, 0x06, 0x02, 0x0F,
+        0x13,                               // ST7735_NORON, normal display mode on
+        0x00                                // ST7735_NOP
+};
 
 } //namespace mxgui
 

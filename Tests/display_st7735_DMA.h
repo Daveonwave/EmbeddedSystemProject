@@ -236,6 +236,7 @@ public:
          */
         pixel_iterator& operator= (Color color)
         {
+            //TODO: potrebbe non funzionare con 16 bit (da splittare lsb-msb)
             writeRam(color);
             if(--pixelLeft == 0) invalidate();
             return *this;
@@ -395,7 +396,7 @@ private:
         SPI2->CR1 = 0;
         SPI2->CR1 = SPI_CR1_SSM
             | SPI_CR1_SSI
-            | SPI_CR1_DFF //TODO: this could be useless
+            | SPI_CR1_DFF 
             | SPI_CR1_MSTR
             | SPI_CR1_SPE;
     }
