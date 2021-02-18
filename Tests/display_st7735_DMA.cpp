@@ -38,6 +38,30 @@ void __attribute__((used)) SPI2txDmaHandlerImpl()
 
 namespace mxgui {
 
+const unsigned char initCmds[] = {
+        0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
+        0xB1, 0x03, 0x00, 0x06, 0x03,       // ST7735_FRMCTR1, normal mode frame rate
+        0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
+        0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
+        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
+        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
+        0xC3, 0x02, 0x02, 0x07,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
+        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
+        0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle)
+        0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
+            0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
+            0x21, 0x1B, 0x13, 0x19,         // accurate colors)
+            0x17, 0x15, 0x1E, 0x2B,
+            0x04, 0x05, 0x02, 0x0E,
+        0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
+            0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
+            0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
+            0x1B, 0x1A, 0x24, 0x2B,
+            0x06, 0x06, 0x02, 0x0F,
+        0x13,                               // ST7735_NORON, normal display mode on
+        0x00                                // ST7735_NOP
+};
+
 /**
  * Function to attach the display we are using.
  */
@@ -393,30 +417,6 @@ void DisplayImpl::waitDmaCompletion()
     volatile short temp=SPI2->DR;
     (void)temp;
 }
-
-const unsigned char initCmds[] = {
-        0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
-        0xB1, 0x03, 0x00, 0x06, 0x03,       // ST7735_FRMCTR1, normal mode frame rate
-        0xB6, 0x02, 0x15, 0x02,             // ST7735_DISSET5, display settings
-        0xB4, 0x01, 0x00,                   // ST7735_INVCTR, line inversion active
-        0xC0, 0x02, 0x02, 0x70,             // ST7735_PWCTR1, default (4.7V, 1.0 uA)
-        0xC1, 0x01, 0x05,                   // ST7735_PWCTR2, default (VGH=14.7V, VGL=-7.35V)
-        0xC3, 0x02, 0x02, 0x07,             // ST7735_PWCTR4, bclk/2, opamp current small and medium low
-        0xC5, 0x02, 0x3C, 0x38,             // ST7735_VMCTR1, VCOMH=4V VCOML=-1.1
-        0xFC, 0x02, 0x11, 0x15,             // ST7735_PWCTR6, power control (partial mode+idle)
-        0xE0, 0x10,                         // ST7735_GMCTRP1, Gamma adjustments (pos. polarity)
-            0x09, 0x16, 0x09, 0x20,         // (Not entirely necessary, but provides
-            0x21, 0x1B, 0x13, 0x19,         // accurate colors)
-            0x17, 0x15, 0x1E, 0x2B,
-            0x04, 0x05, 0x02, 0x0E,
-        0xE1, 0x10,                         // ST7735_GMCTRN1, Gamma adjustments (neg. polarity)
-            0x0B, 0x14, 0x08, 0x1E,         // (Not entirely necessary, but provides
-            0x22, 0x1D, 0x18, 0x1E,         // accurate colors)
-            0x1B, 0x1A, 0x24, 0x2B,
-            0x06, 0x06, 0x02, 0x0F,
-        0x13,                               // ST7735_NORON, normal display mode on
-        0x00                                // ST7735_NOP
-};
 
 } //namespace mxgui
 
