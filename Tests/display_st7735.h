@@ -337,12 +337,7 @@ private:
      */
     static inline void setCursor(Point p)
     {
-        #ifdef MXGUI_ORIENTATION_VERTICAL
-            window(p, p, false);
-        #else //MXGUI_ORIENTATION_HORIZONTAL
-            //window(Point(p.y(), 159-p.x()), Point(p.y(), 159-p.x()), true);
-            window(p, p, true);
-        #endif
+        window(p, p, false);
     }
 
     /**
@@ -364,12 +359,11 @@ private:
     static inline void textWindow(Point p1, Point p2)
     {
         #ifdef MXGUI_ORIENTATION_VERTICAL
-            writeReg (0x36, 0xE0);      // MADCTL
+            writeReg (0x36, 0xE0);      // MADCTL:  MX + MY + MV
             window(p1, p2, true);
         #else //MXGUI_ORIENTATION_HORIZONTAL
-            writeReg (0x36, 0xC0);      // MADCTL
-            //window(Point(p1.y(), p1.y()), Point(159-p2.x(), 159-p1.x()), false);
-            window(Point(p1.y(), p1.x()), Point(p2.y(), p2.x()), false);
+            writeReg (0x36, 0x80);      // MADCTL:  MY
+            window(p1, p2, true);
         #endif
     }
 
@@ -383,12 +377,11 @@ private:
     static inline void imageWindow(Point p1, Point p2)
     {
         #ifdef MXGUI_ORIENTATION_VERTICAL
-            writeReg (0x36, 0xC0);      // MADCTL
+            writeReg (0x36, 0xC0);      // MADCTL:  MX + MY
             window(p1, p2, false);
         #else //MXGUI_ORIENTATION_HORIZONTAL
-            writeReg (0x36, 0xE0);      // MADCTL
-            //window(Point(p1.y(), p2.y()), Point(159-p2.x(), 159-p1.x()), true);
-            window(Point(p1.y(), p1.x()), Point(p2.y(), p2.x()), false);
+            writeReg (0x36, 0xA0);      // MADCTL:  MY + MV
+            window(p1, p2, false);
         #endif
 
     }

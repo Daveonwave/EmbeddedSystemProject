@@ -223,16 +223,29 @@ void DisplayImpl::drawRectangle(Point a, Point b, Color c) {
 }
 
 void DisplayImpl::window(Point p1, Point p2, bool swap) {
-    //Setting column bounds, ST7735_CASET (adding offset +2)
+    #ifdef MXGUI_ORIENTATION_VERTICAL
+        char caset_offset = 2;
+        char raset_offset = 1;
+    #else //MXGUI_ORIENTATION_HORIZONTAL
+        char caset_offset = 1;
+        char raset_offset = 2;
+    #endif
+
+    //Setting column bounds, ST7735_CASET (adding offset)
     unsigned char buff_caset[4];
-    buff_caset[0] = (p1.x()+2)>>8 & 255;      buff_caset[1] = (p1.x()+2) & 255;
-    buff_caset[2] = (p2.x()+2)>>8 & 255;      buff_caset[3] = (p2.x()+2) & 255;
+    buff_caset[0] = (p1.x()+caset_offset)>>8 & 255;
+    buff_caset[1] = (p1.x()+caset_offset) & 255;
+    buff_caset[2] = (p2.x()+caset_offset)>>8 & 255;
+    buff_caset[3] = (p2.x()+caset_offset) & 255;
 
-    //Setting row bounds, ST7735_RASET (adding offset +1)
+    //Setting row bounds, ST7735_RASET (adding offset)
     unsigned char buff_raset[4];
-    buff_raset[0] = (p1.y()+1)>>8 & 255;      buff_raset[1] = (p1.y()+1) & 255;
-    buff_raset[2] = (p2.y()+1)>>8 & 255;      buff_raset[3] = (p2.y()+1) & 255;
+    buff_raset[0] = (p1.y()+raset_offset)>>8 & 255;
+    buff_raset[1] = (p1.y()+raset_offset) & 255;
+    buff_raset[2] = (p2.y()+raset_offset)>>8 & 255;
+    buff_raset[3] = (p2.y()+raset_offset) & 255;
 
+    // For drawing texts, swap the caset and raset buffers
     if (swap){
         writeReg(0x2A, buff_raset, sizeof(buff_raset));
         writeReg(0x2B, buff_caset, sizeof(buff_caset));

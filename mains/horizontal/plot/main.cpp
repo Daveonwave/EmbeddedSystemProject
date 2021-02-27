@@ -4,18 +4,16 @@
 #include "mxgui/entry.h"
 #include "mxgui/misc_inst.h"
 #include "mxgui/level2/input.h"
-
-using namespace miosix;
-using namespace mxgui;
-
-/*
- * //TODO: this example run with HORIZONTAL screen
-#include <entry.h>
-#include <display.h>
 #include <level2/simple_plot.h>
 #include <unistd.h>
 #include <cmath>
+
+using namespace miosix;
+using namespace mxgui;
 using namespace std;
+
+
+// Enable MXGUI_ORIENTATION_HORIZONTAL in mxgui/config/mxgui_settings.h line 83
 ENTRY(){
     int i=0;
     vector<float> data1;
@@ -39,31 +37,6 @@ ENTRY(){
         usleep(100000);
     }
 }
-*/
 
-
-
-int main(){
-    Display& display = DisplayManager::instance().getDisplay();
-    Point start = Point(0, 0);
-    Point end   = Point(127,159);
-    Point mid   = Point(64, 80);
-
-    {
-        DrawingContext dc(display);
-        dc.clear(black);
-        dc.drawRectangle(start, end, grey);
-        dc.write(Point(8,8), "HELLO, WORLD !");
-        dc.clear(mid, end, green);
-        dc.clear(Point(96, 120), end, red);
-        dc.clear(Point(112, 140), end, blue);
-
-        dc.setTextColor(black, white);
-        dc.write(Point(4, 120), "cool :)");
-    }
-
-    for (;;);
-
-}
 
 
