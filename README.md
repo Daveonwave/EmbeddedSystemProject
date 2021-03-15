@@ -6,5 +6,7 @@ We have developed a driver which extends the MiosixOS environment with the featu
 Inside this repository you can find: 
 - the PDF file of the project report
 - st7735.h and st7735.cpp files which have to be integrated with MiosixOS framework
-- a PDF file showing the images we can draw on the display
 - a folder containing scripts we worked on during the development
+- the folder _mains_ which contains the main.cpp files taken from mxgui examples of some tests we tried
+- a pdf file containing photos of above-mentioned tests.
+
