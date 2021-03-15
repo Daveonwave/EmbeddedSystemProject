@@ -290,12 +290,11 @@ DisplayImpl::DisplayImpl(): which(0) {
     {
         FastInterruptDisableLock dLock;
 
-        // Using default clock divider: fclk/2   ->  21 MHz  ->  48 ns
         RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
         SPI2->CR1 = 0;
         SPI2->CR1 = SPI_CR1_SSM     //Software cs
                   | SPI_CR1_SSI     //Hardware cs internally tied high
-                  //| SPI_CR1_BR_0    //clock divider: 4  ->  10,5 MHz -> 95 ns
+                  | SPI_CR1_BR_0    //clock divider: 4  ->  10,5 MHz -> 95 ns
                   | SPI_CR1_MSTR    //Master mode
                   | SPI_CR1_SPE;    //SPI enabled
 

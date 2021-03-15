@@ -18,7 +18,7 @@ SUBDIRS := $(KPATH) mxgui
 ##
 ## List here your source files (both .s, .c and .cpp)
 ##
-SRC := main.cpp
+SRC := main.cpp images\img1_v.cpp images\img2_v.cpp images\img1_h.cpp images\img2_h.cpp
 
 ##
 ## List here additional static libraries with relative path
