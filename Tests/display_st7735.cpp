@@ -17,7 +17,7 @@ void registerDisplayHook(DisplayManager& dm) {
 }
 
 /**
- * Init sequence for the correct functioning of the ST7735 TFT display
+ * Init sequence for the correct functioning of the ST7735 display
  */
 const unsigned char initST7735b[] = {
     0x3A, 0X01, 0x05,                   // ST7735_COLMOD, color mode: 16-bit/pixel
@@ -52,17 +52,17 @@ DisplayImpl& DisplayImpl::instance() {
 }
 
 void DisplayImpl::doTurnOn() {
-    writeReg(0x29);
+    writeReg(0x29);     //ST7735_DISPON 
     delayMs(150);
 }
 
 void DisplayImpl::doTurnOff() {
-    writeReg(0x28);     //ST7735_DISPOFF TODO: should be followed by SLPIN
+    writeReg(0x28);     //ST7735_DISPOFF 
     delayMs(150);
 }
 
 void DisplayImpl::doSetBrightness(int brt) {
-    //No function to set brightness
+    //No function to set brightness for this display
 }
 
 pair<short int, short int> DisplayImpl::doGetSize() const {
@@ -257,7 +257,7 @@ void DisplayImpl::window(Point p1, Point p2, bool swap) {
 }
 
 void DisplayImpl::update() {
-    // Useless in ST7735
+    // Useless for ST7735 display
 }
 
 DisplayImpl::pixel_iterator
@@ -306,11 +306,11 @@ DisplayImpl::DisplayImpl(): which(0) {
         dcx::mode(Mode::OUTPUT);
         resx::mode(Mode::OUTPUT);
     }
+    
     csx::high();
     dcx::high();
 
     // POWER ON SEQUENCE: HW RESET -> SW RESET -> SLPOUT
-    // HW RESET
     resx::high();
     delayMs(150);
     resx::low();
@@ -371,7 +371,7 @@ void DisplayImpl::sendCmds(const unsigned char *cmds) {
         unsigned char numArgs = *cmds++;
         writeReg(cmd, cmds, numArgs);
         cmds += numArgs;
-        delayUs(0.1);
+        delayUs(1);
     }
 }
 

@@ -27,20 +27,18 @@ using namespace miosix;
 
 namespace mxgui {
 
-//This display can be 12, 16 or 18 bits per pixel, check that the color depth is properly
-//configured in mxgui_settings.h
 #ifndef MXGUI_COLOR_DEPTH_16_BIT
-#error The ST7735 driver requires a color depth of 12 or 16 or 18 bits per pixel
+#error The ST7735 driver requires a color depth 16 per pixel
 #endif
 
-//Control interface
+//Hardware mapping
 typedef Gpio<GPIOB_BASE, 13> scl;   //PB13,  SPI1_SCK (af5)
 typedef Gpio<GPIOB_BASE, 15> sda;   //PB15,  SPI1_MOSI (af5)
 typedef Gpio<GPIOB_BASE, 4> csx;    //PB4,   free I/O pin
 typedef Gpio<GPIOC_BASE, 6> resx;   //PC6,   free I/O pin
 typedef Gpio<GPIOA_BASE, 8> dcx;    //PA8,   free I/O pin, used only in 4-line SPI
 
-//A falling edge of CSX enables the SPI1 transaction
+//A falling edge of CSX enables the SPI transaction
 class SPITransaction
 {
 public:
@@ -131,8 +129,7 @@ public:
     void beginPixel() override;
 
     /**
-     * Draw a pixel with desired color. You have to call beginPixel() once
-     * before calling setPixel()
+     * Draw a pixel with desired color. 
      * \param p point where to draw pixel
      * \param color pixel color
      */
@@ -322,7 +319,7 @@ private:
         static const short int width    = 160;
         static const short int height   = 128;
     #else
-        #error No orientation defined
+        #error Orientation not defined
     #endif
 
     /**
@@ -341,14 +338,16 @@ private:
     }
 
     /**
-     *   register 0x36: bit 7------0
-     *       4:     |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
-     *       8:     ||||+---  RGB BRG order (0 for RGB)
-     *       16:    |||+----  ML vertical refesh (0 T-to-B, 1 B-to-T)
-     *       32:    ||+-----  MV row column exchange (1 for X-Y exchange)
-     *       64:    |+------  MX column address order (1 for mirror X axis)
-     *       128:   +-------  MY row address order (1 for mirror Y axis)
+     *  Register 0x36: MADCTL 
+     *       bit 7------0
+     *        4: |||||+--  MH horizontal referesh (0 L-to-R, 1 R-to-L)
+     *        8: ||||+---  RGB BRG order (0 for RGB)
+     *       16: |||+----  ML vertical refesh (0 T-to-B, 1 B-to-T)
+     *       32: ||+-----  MV row column exchange (1 for X-Y exchange)
+     *       64: |+------  MX column address order (1 for mirror X axis)
+     *      128: +-------  MY row address order (1 for mirror Y axis)
      */
+
     /**
      * Set a hardware window on the screen, optimized for writing text.
      * The GRAM increment will be set to up-to-down first, then left-to-right
@@ -383,7 +382,6 @@ private:
             writeReg (0x36, 0xA0);      // MADCTL:  MY + MV
             window(p1, p2, false);
         #endif
-
     }
 
     /**
@@ -409,7 +407,7 @@ private:
     {
         SPI2->DR = data;
         while((SPI2->SR & SPI_SR_RXNE) == 0) ;
-        return SPI2->DR; //Note: reading back SPI1->DR is necessary.
+        return SPI2->DR; //Note: reading back SPI2->DR is necessary.
     }
 
     /**
@@ -440,6 +438,6 @@ private:
 
 } //namespace mxgui
 
-#endif //_BOARD_STM32F407VG_STM32F4DISCOVERY
+#endif //_BOARD_STM32F4DISCOVERY
 
 #endif //DISPLAY_ST7735H
