@@ -1,9 +1,12 @@
-# EmbeddedSystemProject
-Project with STM32F4DISCOVERY board and ST7735 LCD Display
+## Implementation of a display driver for MiosixOS
+##### Embedded Systems Project - POLIMI 2020/21
 
-I files attualmente in sviluppo sono:
-- display_st7735.h
-- display_st7735.cpp
+We have developed a driver which extends the MiosixOS environment with the features to support ST7735 display plugged in STM32F4Discovery board with MCU STM32F407VG.
 
-- display_st7735_DMA.h
-- display_st7735_DMA.cpp
+Inside this repository you can find: 
+- the PDF file of the project report
+- st7735.h and st7735.cpp files which have to be integrated with MiosixOS framework
+- a folder containing scripts we worked on during the development
+- the folder _mains_ which contains the main.cpp files taken from mxgui examples of some tests we tried
+- a pdf file containing photos of above-mentioned tests.
+
