@@ -1,5 +1,5 @@
-# EmbeddedSystemProject
-Project with STM32F4DISCOVERY board and ST7735 LCD Display
+# Embeedded Systems Project
+## Implementation of a display driver for MiosixOS
 
 I files attualmente in sviluppo sono:
 - display_st7735.h
