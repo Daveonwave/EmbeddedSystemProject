@@ -175,7 +175,8 @@ void DisplayImpl::scanLine(Point p, const Color *colors, unsigned short length) 
 }
 
 Color *DisplayImpl::getScanLineBuffer() {
-    return buffers[which];
+    if(buffer==0) buffer=new Color[getWidth()];
+    return buffer;
 }
 
 void DisplayImpl::scanLineBuffer(Point p, unsigned short length) {
@@ -283,10 +284,12 @@ DisplayImpl::begin(Point p1, Point p2, IteratorDirection d) {
 }
 
 //Destructor
-DisplayImpl::~DisplayImpl() {}
+DisplayImpl::~DisplayImpl() {
+    if(buffer) delete[] buffer;
+}
 
 //Constructor
-DisplayImpl::DisplayImpl(): which(0) {
+DisplayImpl::DisplayImpl(): buffer(0) {
     {
         FastInterruptDisableLock dLock;
 

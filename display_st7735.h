@@ -432,8 +432,6 @@ private:
     static void sendCmds(const unsigned char *cmds);
 
     Color *buffer;          //< For scanLineBuffer
-    Color buffers[2][128];  //< Line buffers for scanline overlapped I/O
-    int which;              //< Currently empty buffer
 };
 
 } //namespace mxgui
